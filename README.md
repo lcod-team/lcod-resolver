@@ -60,3 +60,6 @@ Dependencies collected by the `foreach` loop appear under `components[0].depende
 - Implement a full `resolve-dependency` (mirrors/git/http, integrity checks).
 - Extend resolver config (`replace`, `allowlist`) and enrich lock metadata.
 - Publish the package as `.lcpkg` so it can be consumed out of tree.
+
+Full CLI conventions, cache layout, and kernel interaction rules are defined in
+[`lcod-spec/docs/resolver/README.md`](https://github.com/lcod-team/lcod-spec/blob/main/docs/resolver/README.md).
