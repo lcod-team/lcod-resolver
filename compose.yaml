@@ -19,6 +19,24 @@ compose:
     out:
       descriptor: value
 
+  - call: lcod://tooling/script@1
+    in:
+      source: |
+        async ({ input }) => ({
+          resolutionStack: typeof input.id === 'string' && input.id ? [input.id] : []
+        })
+      input:
+        id: $.descriptor.id
+    out:
+      resolutionStack: resolutionStack
+
+  - call: lcod://contract/core/hash/sha256@1
+    in:
+      data: $.descriptorText
+      encoding: "utf-8"
+    out:
+      descriptorHash: base64
+
   - call: lcod://flow/if@1
     in:
       cond: $.configPath
@@ -100,6 +118,7 @@ compose:
   - call: lcod://flow/foreach@1
     in:
       list: $.descriptor.deps.requires
+      stack: $.resolutionStack
     children:
       body:
         - call: lcod://contract/tooling/resolve-dependency@1
@@ -107,36 +126,60 @@ compose:
             dependency: $slot.item
             config: $.resolverConfig
             projectPath: $.projectPath
+            stack: $.resolutionStack
           out:
-            resolved: resolved
+            iterationResult: $
       else: []
-    collectPath: $.resolved
+    collectPath: $.iterationResult
     out:
-      resolvedDependencies: results
+      resolvedEntries: results
 
   - call: lcod://tooling/script@1
     in:
       source: |
-        async ({ state }) => {
-          const descriptor = state.descriptor ?? {};
-          const dependencies = Array.isArray(state.resolvedDependencies)
-            ? state.resolvedDependencies
-            : [];
+        async ({ input }) => {
+          const entries = Array.isArray(input.entries) ? input.entries : [];
+          return {
+            dependencyGraph: entries.map(entry => entry.resolved).filter(Boolean),
+            collectedWarnings: entries.flatMap(entry => Array.isArray(entry.warnings) ? entry.warnings : [])
+          };
+        }
+      input:
+        entries: $.resolvedEntries
+    out:
+      dependencyGraph: dependencyGraph
+      collectedWarnings: collectedWarnings
+
+  - call: lcod://tooling/script@1
+    in:
+      source: |
+        async ({ input }) => {
+          const descriptor = input.descriptor ?? {};
+          const descriptorIntegrity = input.descriptorHash ? `sha256-${input.descriptorHash}` : null;
+          const component = {
+            id: descriptor.id,
+            resolved: descriptor.id,
+            source: { type: 'path', path: '.' },
+            dependencies: input.dependencyGraph || []
+          };
+          if (descriptorIntegrity) {
+            component.integrity = descriptorIntegrity;
+          }
+          const warnings = Array.isArray(input.collectedWarnings) ? input.collectedWarnings : [];
           return {
             lockDocument: {
               schemaVersion: '1.0',
               resolverVersion: '0.1.0',
-              components: [
-                {
-                  id: descriptor.id,
-                  resolved: descriptor.id,
-                  source: { type: 'path', path: '.' },
-                  dependencies
-                }
-              ]
+              components: [component],
+              warnings
             }
           };
         }
+      input:
+        descriptor: $.descriptor
+        dependencyGraph: $.dependencyGraph
+        collectedWarnings: $.collectedWarnings
+        descriptorHash: $.descriptorHash
     out:
       lockDocument: lockDocument
 
@@ -156,8 +199,8 @@ compose:
   - call: lcod://impl/set@1
     in:
       lockPath: $.lockPath
-      components: $.resolvedDependencies
-      warnings: []
+      components: $.dependencyGraph
+      warnings: $.collectedWarnings
     out:
       lockPath: lockPath
       components: components
