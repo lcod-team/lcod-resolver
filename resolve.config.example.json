@@ -1,4 +1,13 @@
 {
+  "allowlist": [
+    "lcod://example"
+  ],
+  "replace": {
+    "lcod://examples/demo/my_weather@0.1.0": {
+      "type": "path",
+      "path": "../lcod-spec/examples/demo/my_weather"
+    }
+  },
   "sources": {
     "lcod://examples/demo/my_weather@0.1.0": {
       "type": "path",

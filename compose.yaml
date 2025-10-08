@@ -133,6 +133,21 @@ compose:
           }
           const config = typeof state?.config === 'object' && state.config ? state.config : {};
           const sources = typeof config.sources === 'object' && config.sources ? config.sources : {};
+          const replaceRaw = typeof config.replace === 'object' && config.replace ? config.replace : {};
+          const allowlist = Array.isArray(config.allowlist)
+            ? config.allowlist
+                .map((entry) => (typeof entry === 'string' ? entry.trim() : String(entry ?? '')))
+                .filter((entry) => entry.length > 0)
+            : null;
+          const replaceAlias = new Map();
+          const replaceSpec = new Map();
+          for (const [from, rule] of Object.entries(replaceRaw)) {
+            if (typeof rule === 'string') {
+              replaceAlias.set(from, rule);
+            } else if (rule && typeof rule === 'object') {
+              replaceSpec.set(from, rule);
+            }
+          }
           const projectPath = typeof state?.projectPath === 'string' && state.projectPath
             ? state.projectPath
             : process.cwd();
@@ -157,6 +172,41 @@ compose:
           const joinPath = async (base, segment) => {
             const joined = await imports.pathJoin({ base, segment });
             return joined?.path || base;
+          };
+
+          const isAllowed = (candidate) => {
+            if (!allowlist || allowlist.length === 0) return true;
+            return allowlist.some((rule) => {
+              if (rule.endsWith('*')) {
+                return candidate.startsWith(rule.slice(0, -1));
+              }
+              if (rule.endsWith('/')) {
+                return candidate.startsWith(rule);
+              }
+              return candidate === rule || candidate.startsWith(`${rule}/`);
+            });
+          };
+
+          const selectReplacement = (id) => {
+            let current = id;
+            let override = null;
+            const visited = new Set();
+            while (true) {
+              if (replaceSpec.has(current)) {
+                override = replaceSpec.get(current);
+                break;
+              }
+              if (!replaceAlias.has(current)) {
+                break;
+              }
+              if (visited.has(current)) {
+                warnings.push(`Replacement cycle detected: ${[...visited, current].join(' -> ')}`);
+                break;
+              }
+              visited.add(current);
+              current = replaceAlias.get(current);
+            }
+            return { targetId: current, override };
           };
 
           const readDescriptor = async (descriptorPath) => {
@@ -307,47 +357,63 @@ compose:
           };
 
           const resolveDependency = async (depId, stack = [], preload) => {
-            const id = typeof depId === 'string' && depId ? depId : String(depId);
-            if (resolved.has(id)) return resolved.get(id);
-            if (stack.includes(id)) {
-              warnings.push(`Dependency cycle detected: ${[...stack, id].join(' -> ')}`);
-              return resolved.get(id);
+            const originalId = typeof depId === 'string' && depId ? depId : String(depId);
+            if (resolved.has(originalId)) return resolved.get(originalId);
+            if (!isAllowed(originalId)) {
+              throw new Error(`Dependency ${originalId} is not allowed by resolver configuration`);
             }
 
-            const spec = preload?.source || sources[id];
-            if (!spec) {
-              warnings.push(`Missing source spec for ${id}`);
-              const fallback = { id, source: { type: 'registry', reference: id }, dependencies: [] };
-              resolved.set(id, fallback);
-              return fallback;
+            const { targetId, override } = selectReplacement(originalId);
+            if (!isAllowed(targetId)) {
+              throw new Error(`Dependency ${targetId} (replacement for ${originalId}) is not allowed by resolver configuration`);
             }
+
+            if (stack.includes(originalId)) {
+              warnings.push(`Dependency cycle detected: ${[...stack, originalId].join(' -> ')}`);
+              return resolved.get(originalId);
+            }
+
+            const spec = override
+              ?? (preload && originalId === targetId ? preload.source : undefined)
+              ?? sources[targetId]
+              ?? sources[originalId];
 
             let info;
             try {
-              info = await loadSpec(id, spec, preload);
+              const preloadCandidate = originalId === targetId ? preload : undefined;
+              info = await loadSpec(targetId, spec, preloadCandidate);
             } catch (err) {
-              warnings.push(`Failed to load ${id}: ${err.message}`);
-              const fallback = { id, source: { type: spec.type || 'unknown', reference: id }, dependencies: [] };
-              resolved.set(id, fallback);
+              warnings.push(`Failed to load ${targetId} for ${originalId}: ${err.message}`);
+              const fallbackSource = spec && spec.type ? spec.type : 'registry';
+              const fallback = {
+                id: originalId,
+                resolved: targetId !== originalId ? targetId : undefined,
+                source: { type: fallbackSource, reference: targetId },
+                dependencies: []
+              };
+              resolved.set(originalId, fallback);
               return fallback;
             }
 
             const record = {
-              id,
-              source: info.source,
+              id: originalId,
+              source: info?.source || { type: 'registry', reference: targetId },
               dependencies: []
             };
-            if (info.integrity) record.integrity = info.integrity;
-            resolved.set(id, record);
+            if (targetId !== originalId) {
+              record.resolved = targetId;
+            }
+            if (info?.integrity) record.integrity = info.integrity;
+            resolved.set(originalId, record);
 
-            const childIds = Array.isArray(info.childIds) ? info.childIds : [];
+            const childIds = Array.isArray(info?.childIds) ? info.childIds : [];
             for (const child of childIds) {
               if (typeof child !== 'string' || !child) continue;
               try {
-                const childRecord = await resolveDependency(child, [...stack, id]);
+                const childRecord = await resolveDependency(child, [...stack, originalId]);
                 if (childRecord) record.dependencies.push(childRecord);
               } catch (err) {
-                warnings.push(`Failed to resolve ${child} for ${id}: ${err.message}`);
+                warnings.push(`Failed to resolve ${child} for ${originalId}: ${err.message}`);
               }
             }
 

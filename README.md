@@ -44,6 +44,23 @@ node ../lcod-kernel-js/bin/run-compose.mjs \
 All overrides can also be provided through a state JSON file; explicit CLI flags win over state
 values.
 
+## Resolver configuration
+
+The optional `resolve.config.json` (or any file passed via `--config`) can
+augment resolution with three constructs:
+
+- `sources` — explicit source specs keyed by component ID. Supported types are
+  the same as in the compose (`path`, `git`, `http`).
+- `replace` — remap component IDs. The value can be another ID (string) or an
+  inline source spec. Replacements take precedence over `sources` and record the
+  effective ID under `resolved` in the lockfile.
+- `allowlist` — array of ID prefixes/IDs that are allowed to be resolved. Dependencies
+  outside of the list fail fast, providing a simple guardrail when composing
+  internal packages.
+
+`resolve.config.example.json` illustrates the format with a path override and a
+namespace allowlist.
+
 ## Run with the Rust kernel
 
 ```bash
