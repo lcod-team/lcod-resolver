@@ -1,12 +1,13 @@
 # lcod-resolver
 
-LCOD compose that reads an `lcp.toml` descriptor and emits an `lcp.lock`. The package exposes the
-workflow `lcod://tooling/resolver@0.1.0`, defined in `compose.yaml` alongside the package manifest
-`lcp.toml`.
+LCOD compose that reads an `lcp.toml` descriptor and emits an `lcp.lock`. The workflow tolerates
+missing resolver configuration by falling back to an empty `sources` map and surfacing a warning in
+the resulting lockfile. `lcod://tooling/resolver@0.1.0` is defined in `compose.yaml` alongside the
+package manifest `lcp.toml`.
 
 ## Layout
 
-- `compose.yaml` — resolution pipeline (descriptor load, config fallbacks, dependency loop).
+- `compose.yaml` — resolution pipeline (descriptor load, config fallbacks, dependency graph script).
 - `schema/resolve.in.json` — input schema (`projectPath` required, optional `configPath`/`outputPath`).
 - `schema/resolve.out.json` — output schema (`lockPath`, `components`, `warnings`).
 - `resolve.config.example.json` — sample resolver configuration with custom sources.
@@ -25,18 +26,42 @@ Keep the LCOD runtimes next to this repo, for example:
 
 ```bash
 node ../lcod-kernel-js/bin/run-compose.mjs \
-  --core --resolver \
+  --resolver \
   --compose ./compose.yaml \
-  --state ./state.example.json
+  --project ./examples/tooling/resolver \
+  --output ./examples/tooling/resolver/lcp.lock \
+  --cache-dir ~/.cache/lcod/resolver
 ```
 
-- `projectPath` must reference the directory containing `lcp.toml` (here `.`).
-- `configPath` can point to a JSON resolver config (see `resolve.config.example.json`).
-- `outputPath` is optional; if omitted the compose writes `./lcp.lock`.
+- `projectPath` defaults to the current working directory; override with `--project`.
+- `configPath` can point to a JSON resolver config (see `resolve.config.example.json`) via
+  `--config`. When omitted, the compose attempts to load `<project>/resolve.config.json` and
+  records a warning if the file is missing.
+- `outputPath` defaults to `<project>/lcp.lock`; override with `--output`.
+- `--cache-dir` (or the `LCOD_CACHE_DIR` env var) sets the shared cache root. The compose still
+  prefers `<project>/.lcod/cache` when available.
 
-The contract `lcod://contract/tooling/resolve-dependency@1` is currently a stub that returns
-entries from `config.sources` (or a mock reference). Runtimes can provide a real resolution
-implementation later.
+All overrides can also be provided through a state JSON file; explicit CLI flags win over state
+values.
+
+## Run with the Rust kernel
+
+```bash
+cargo run --bin run_compose -- --compose ./compose.yaml \
+  --project ./examples/tooling/resolver \
+  --output ./examples/tooling/resolver/lcp.lock \
+  --cache-dir ~/.cache/lcod/resolver
+```
+
+The Rust CLI registers the same core/flow/tooling contracts automatically. Any of the overrides can
+be mixed with `--state` as in the Node example.
+
+The compose relies on `tooling/script@1` with import aliases to call filesystem/network axioms.
+Runtimes only need to provide the generic cache selector axiom
+`lcod://tooling/resolver/cache-dir@1` in addition to the standard filesystem/git/http/hash
+contracts. The legacy contract
+`lcod://contract/tooling/resolve-dependency@1` remains as a stub for compatibility but the
+compose no longer depends on it.
 
 ## Output
 
@@ -46,18 +71,28 @@ After execution, `lcp.lock` looks like:
 schemaVersion = "1.0"
 resolverVersion = "0.1.0"
 [[components]]
-id = "lcod://tooling/resolver@0.1.0"
-resolved = "lcod://tooling/resolver@0.1.0"
-[source]
-type = "path"
-path = "."
+id = "lcod://example/app@0.1.0"
+resolved = "lcod://example/app@0.1.0"
+integrity = "sha256-…"
+
+  [components.source]
+  type = "path"
+  path = "."
+
+  [[components.dependencies]]
+  id = "lcod://example/dep@0.1.0"
+  integrity = "sha256-…"
+
+    [components.dependencies.source]
+    type = "path"
+    path = "./components/dep"
 ```
 
-Dependencies collected by the `foreach` loop appear under `components[0].dependencies`.
+Warnings collected during resolution (missing sources, config fallbacks, fetch errors) are stored in
+`warnings` and mirrored under `components[].dependencies[*].source` when a fallback was required.
 
 ## Next steps
 
-- Implement a full `resolve-dependency` (mirrors/git/http, integrity checks).
 - Extend resolver config (`replace`, `allowlist`) and enrich lock metadata.
 - Publish the package as `.lcpkg` so it can be consumed out of tree.
 

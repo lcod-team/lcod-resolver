@@ -5,7 +5,7 @@
 - [x] Resolve `lcod://ns/name@range` → concrete URL
 - [x] Fetch & read `lcp.toml`; fallback to `index.json` for non-standard files
 - [x] Cache + sha256 integrity
-- [ ] Refactor recursion/caching into compose helpers (propose missing axioms; minimize kernel-only logic)
+- [x] Refactor recursion/caching into compose helpers (propose missing axioms; minimize kernel-only logic)
 
 ## M1
 - [x] Generate `lcp.lock`
@@ -16,3 +16,5 @@
 - [ ] Offline mode (cache/lock only)
 - [ ] Export `.lcpkg`
 - [ ] Stable Node/TS API + CLI
+- [ ] Introduce packaging commands (`assemble` bundle, `ship` runtime wrapper, `build` integration) aligned with spec roadmap.
+- [ ] Ajouter un pré-traitement compose sugar → canonique via le composant de normalisation partagé pour rendre les configurations plus lisibles sans toucher au kernel.
