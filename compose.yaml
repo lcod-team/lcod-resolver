@@ -126,36 +126,74 @@ compose:
   - call: lcod://tooling/script@1
     in:
       source: |
-        async ({ state, imports }, api) => {
+        async ({ projectPath, resolverConfig, configWarning }) => {
           const warnings = [];
-          if (typeof state?.configWarning === 'string' && state.configWarning) {
-            warnings.push(state.configWarning);
+          if (typeof configWarning === 'string' && configWarning.trim()) {
+            warnings.push(configWarning);
           }
-          const config = typeof state?.config === 'object' && state.config ? state.config : {};
-          const sources = typeof config.sources === 'object' && config.sources ? config.sources : {};
-          const replaceRaw = typeof config.replace === 'object' && config.replace ? config.replace : {};
-          const allowlist = Array.isArray(config.allowlist)
-            ? config.allowlist
+          const config = resolverConfig && typeof resolverConfig === 'object' ? resolverConfig : {};
+          const sources = config.sources && typeof config.sources === 'object' ? config.sources : {};
+          const replaceEntries = config.replace && typeof config.replace === 'object' ? config.replace : {};
+          const replaceAlias = {};
+          const replaceSpec = {};
+          for (const [from, rule] of Object.entries(replaceEntries)) {
+            if (typeof rule === 'string') {
+              replaceAlias[from] = rule;
+            } else if (rule && typeof rule === 'object') {
+              replaceSpec[from] = rule;
+            }
+          }
+          const allowItems = Array.isArray(config.allowlist) ? config.allowlist : null;
+          const allowlist = allowItems
+            ? allowItems
                 .map((entry) => (typeof entry === 'string' ? entry.trim() : String(entry ?? '')))
                 .filter((entry) => entry.length > 0)
             : null;
-          const replaceAlias = new Map();
-          const replaceSpec = new Map();
-          for (const [from, rule] of Object.entries(replaceRaw)) {
-            if (typeof rule === 'string') {
-              replaceAlias.set(from, rule);
-            } else if (rule && typeof rule === 'object') {
-              replaceSpec.set(from, rule);
-            }
-          }
+          const baseProject = typeof projectPath === 'string' && projectPath ? projectPath : '.';
+          return { warnings, sources, replaceAlias, replaceSpec, allowlist, projectPath: baseProject };
+        }
+      projectPath: $.projectPath
+      resolverConfig: $.resolverConfig
+      configWarning: $.configWarning
+    out:
+      warnings: =
+      sources: =
+      replaceAlias: =
+      replaceSpec: =
+      allowlist: =
+      projectPath: =
+
+  - call: lcod://tooling/resolver/cache-dir@1
+    in:
+      projectPath: $.projectPath
+    out:
+      cacheRoot: path
+
+  - call: lcod://axiom/path/join@1
+    in:
+      base: $.cacheRoot
+      segment: "."
+    out:
+      cacheRoot: path
+
+  - call: lcod://tooling/script@1
+    in:
+      source: |
+        async ({ state, imports }, api) => {
+          const warnings = Array.isArray(state?.warnings) ? [...state.warnings] : [];
+          const sources = state?.sources && typeof state.sources === 'object' ? state.sources : {};
+          const replaceAlias = state?.replaceAlias && typeof state.replaceAlias === 'object' ? state.replaceAlias : {};
+          const replaceSpec = state?.replaceSpec && typeof state.replaceSpec === 'object' ? state.replaceSpec : {};
+          const allowlist = Array.isArray(state?.allowlist) ? state.allowlist : null;
           const projectPath = typeof state?.projectPath === 'string' && state.projectPath
             ? state.projectPath
-            : process.cwd();
+            : '.';
+          const cacheRoot = typeof state?.cacheRoot === 'string' && state.cacheRoot
+            ? state.cacheRoot
+            : projectPath;
 
-          const cacheInfo = await imports.cacheDir({ projectPath });
-          const cacheRootRaw = cacheInfo?.path || projectPath;
-          const normalised = await api.call('lcod://axiom/path/join@1', { base: cacheRootRaw, segment: '.' });
-          const cacheRoot = normalised?.path || cacheRootRaw;
+          const aliasMap = new Map(Object.entries(replaceAlias));
+          const specMap = new Map(Object.entries(replaceSpec));
 
           const resolved = new Map();
 
@@ -192,11 +230,11 @@ compose:
             let override = null;
             const visited = new Set();
             while (true) {
-              if (replaceSpec.has(current)) {
-                override = replaceSpec.get(current);
+              if (specMap.has(current)) {
+                override = specMap.get(current);
                 break;
               }
-              if (!replaceAlias.has(current)) {
+              if (!aliasMap.has(current)) {
                 break;
               }
               if (visited.has(current)) {
@@ -204,7 +242,7 @@ compose:
                 break;
               }
               visited.add(current);
-              current = replaceAlias.get(current);
+              current = aliasMap.get(current);
             }
             return { targetId: current, override };
           };
@@ -458,7 +496,6 @@ compose:
         hash: lcod://contract/core/hash/sha256@1
         gitClone: lcod://contract/core/git/clone@1
         httpDownload: lcod://axiom/http/download@1
-        cacheDir: lcod://tooling/resolver/cache-dir@1
     out:
       resolverResult: $
 
@@ -477,9 +514,9 @@ compose:
         root: $.resolverResult.root
         warnings: $.resolverResult.warnings
     out:
-      dependencyGraph: dependencyGraph
-      rootIntegrity: rootIntegrity
-      collectedWarnings: collectedWarnings
+      dependencyGraph: =
+      rootIntegrity: =
+      collectedWarnings: =
 
   - call: lcod://tooling/script@1
     in:
@@ -530,6 +567,6 @@ compose:
       components: $.lockDocument.components
       warnings: $.lockDocument.warnings
     out:
-      lockPath: lockPath
-      components: components
-      warnings: warnings
+      lockPath: =
+      components: =
+      warnings: =
