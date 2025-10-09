@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["lockDocument", "lockText"],
+  "properties": {
+    "lockDocument": {
+      "type": "object",
+      "description": "Structured lock payload."
+    },
+    "lockText": {
+      "type": "string",
+      "description": "TOML serialization of the lock payload."
+    }
+  },
+  "additionalProperties": true
+}

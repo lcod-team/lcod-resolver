@@ -1,199 +1,63 @@
 compose:
-  - call: lcod://axiom/path/join@1
+  - call: lcod://resolver/internal/load-descriptor@1
     in:
-      base: $.projectPath
-      segment: "lcp.toml"
+      projectPath: $.projectPath
     out:
-      descriptorPath: path
+      descriptor: descriptor
+      descriptorText: descriptorText
+      descriptorPath: descriptorPath
 
-  - call: lcod://axiom/fs/read-file@1
+  - call: lcod://resolver/internal/load-config@1
     in:
-      path: $.descriptorPath
-      encoding: "utf-8"
+      projectPath: $.projectPath
+      configPath: $.configPath
     out:
-      descriptorText: data
+      config: resolverConfig
+      configPath: resolvedConfigPath
+      warnings: configWarnings
 
-  - call: lcod://axiom/toml/parse@1
+  - call: lcod://resolver/internal/lock-path@1
     in:
-      text: $.descriptorText
-    out:
-      descriptor: value
-
-  - call: lcod://tooling/script@1
-    in:
-      source: |
-        async ({ state }) => ({
-          hasConfigPath: typeof state.configPath === 'string' && state.configPath.trim().length > 0
-        })
-      input:
-        configPath: $.configPath
-    out:
-      hasConfigPath: hasConfigPath
-
-  - call: lcod://flow/if@1
-    in:
-      cond: $.hasConfigPath
-    out:
-      configText: configText
-    children:
-      then:
-        - call: lcod://axiom/fs/read-file@1
-          in:
-            path: $.configPath
-            encoding: "utf-8"
-          out:
-            configText: data
-      else:
-        - call: lcod://axiom/path/join@1
-          in:
-            base: $.projectPath
-            segment: "resolve.config.json"
-          out:
-            defaultConfigPath: path
-        - call: lcod://tooling/script@1
-          in:
-            source: |
-              async ({ state, imports }) => {
-                const fallback = '{"sources":{}}';
-                const path = typeof state?.defaultPath === 'string' ? state.defaultPath : null;
-                if (!path) return { configText: fallback };
-                try {
-                  const file = await imports.fsReadFile({ path, encoding: 'utf-8' });
-                  return { configText: file?.data ?? fallback };
-                } catch (err) {
-                  return { configText: fallback, warning: `Failed to read ${path}: ${err.message}` };
-                }
-              }
-            input:
-              defaultPath: $.defaultConfigPath
-            imports:
-              fsReadFile: lcod://axiom/fs/read-file@1
-          out:
-            configText: configText
-            configWarning: warning
-
-  - call: lcod://tooling/script@1
-    in:
-      source: |
-        async ({ state }) => ({
-          hasConfigText: typeof state.configText === 'string' && state.configText.trim().length > 0
-        })
-      input:
-        configText: $.configText
-    out:
-      hasConfigText: hasConfigText
-
-  - call: lcod://flow/if@1
-    in:
-      cond: $.hasConfigText
-    out:
-      resolverConfig: resolverConfig
-    children:
-      then:
-        - call: lcod://axiom/json/parse@1
-          in:
-            text: $.configText
-          out:
-            resolverConfig: value
-      else:
-        - call: lcod://impl/set@1
-          in:
-            resolverConfig:
-              sources: {}
-          out:
-            resolverConfig: resolverConfig
-
-  - call: lcod://flow/if@1
-    in:
-      cond: $.outputPath
-    children:
-      then:
-        - call: lcod://impl/set@1
-          in:
-            lockPath: $.outputPath
-          out:
-            lockPath: lockPath
-      else:
-        - call: lcod://axiom/path/join@1
-          in:
-            base: $.projectPath
-            segment: "lcp.lock"
-          out:
-            lockPath: path
+      projectPath: $.projectPath
+      outputPath: $.outputPath
     out:
       lockPath: lockPath
 
   - call: lcod://tooling/script@1
     in:
       source: |
-        async ({ projectPath, resolverConfig, configWarning }) => {
-          const warnings = [];
-          if (typeof configWarning === 'string' && configWarning.trim()) {
-            warnings.push(configWarning);
-          }
-          const config = resolverConfig && typeof resolverConfig === 'object' ? resolverConfig : {};
-          const sources = config.sources && typeof config.sources === 'object' ? config.sources : {};
-          const replaceEntries = config.replace && typeof config.replace === 'object' ? config.replace : {};
-          const replaceAlias = {};
-          const replaceSpec = {};
-          for (const [from, rule] of Object.entries(replaceEntries)) {
-            if (typeof rule === 'string') {
-              replaceAlias[from] = rule;
-            } else if (rule && typeof rule === 'object') {
-              replaceSpec[from] = rule;
-            }
-          }
-          const allowItems = Array.isArray(config.allowlist) ? config.allowlist : null;
-          const allowlist = allowItems
-            ? allowItems
+        async ({ state, imports }, api) => {
+          const warnings = Array.isArray(state?.configWarnings)
+            ? state.configWarnings.filter((entry) => typeof entry === 'string' && entry.length > 0)
+            : [];
+          const config = typeof state?.resolverConfig === 'object' && state.resolverConfig
+            ? state.resolverConfig
+            : (typeof state?.config === 'object' && state.config ? state.config : {});
+          const sourcesObj = typeof config.sources === 'object' && config.sources ? config.sources : {};
+          const sourceMap = new Map(Object.entries(sourcesObj));
+          const replaceRaw = typeof config.replace === 'object' && config.replace ? config.replace : {};
+          const allowlist = Array.isArray(config.allowlist)
+            ? config.allowlist
                 .map((entry) => (typeof entry === 'string' ? entry.trim() : String(entry ?? '')))
                 .filter((entry) => entry.length > 0)
             : null;
-          const baseProject = typeof projectPath === 'string' && projectPath ? projectPath : '.';
-          return { warnings, sources, replaceAlias, replaceSpec, allowlist, projectPath: baseProject };
-        }
-      projectPath: $.projectPath
-      resolverConfig: $.resolverConfig
-      configWarning: $.configWarning
-    out:
-      warnings: =
-      sources: =
-      replaceAlias: =
-      replaceSpec: =
-      allowlist: =
-      projectPath: =
-
-  - call: lcod://tooling/resolver/cache-dir@1
-    in:
-      projectPath: $.projectPath
-    out:
-      cacheRoot: path
-
-  - call: lcod://axiom/path/join@1
-    in:
-      base: $.cacheRoot
-      segment: "."
-    out:
-      cacheRoot: path
-
-  - call: lcod://tooling/script@1
-    in:
-      source: |
-        async ({ state, imports }, api) => {
-          const warnings = Array.isArray(state?.warnings) ? [...state.warnings] : [];
-          const sources = state?.sources && typeof state.sources === 'object' ? state.sources : {};
-          const replaceAlias = state?.replaceAlias && typeof state.replaceAlias === 'object' ? state.replaceAlias : {};
-          const replaceSpec = state?.replaceSpec && typeof state.replaceSpec === 'object' ? state.replaceSpec : {};
-          const allowlist = Array.isArray(state?.allowlist) ? state.allowlist : null;
+          const replaceAlias = new Map();
+          const replaceSpec = new Map();
+          for (const [from, rule] of Object.entries(replaceRaw)) {
+            if (typeof rule === 'string') {
+              replaceAlias.set(from, rule);
+            } else if (rule && typeof rule === 'object') {
+              replaceSpec.set(from, rule);
+            }
+          }
           const projectPath = typeof state?.projectPath === 'string' && state.projectPath
             ? state.projectPath
-            : '.';
-          const cacheRoot = typeof state?.cacheRoot === 'string' && state.cacheRoot
-            ? state.cacheRoot
-            : projectPath;
+            : process.cwd();
 
-          const aliasMap = new Map(Object.entries(replaceAlias));
-          const specMap = new Map(Object.entries(replaceSpec));
+          const cacheInfo = await imports.cacheDir({ projectPath });
+          const cacheRootRaw = cacheInfo?.path || projectPath;
+          const normalised = await api.call('lcod://axiom/path/join@1', { base: cacheRootRaw, segment: '.' });
+          const cacheRoot = normalised?.path || cacheRootRaw;
 
           const resolved = new Map();
 
@@ -230,11 +94,11 @@ compose:
             let override = null;
             const visited = new Set();
             while (true) {
-              if (specMap.has(current)) {
-                override = specMap.get(current);
+              if (replaceSpec.has(current)) {
+                override = replaceSpec.get(current);
                 break;
               }
-              if (!aliasMap.has(current)) {
+              if (!replaceAlias.has(current)) {
                 break;
               }
               if (visited.has(current)) {
@@ -242,7 +106,7 @@ compose:
                 break;
               }
               visited.add(current);
-              current = aliasMap.get(current);
+              current = replaceAlias.get(current);
             }
             return { targetId: current, override };
           };
@@ -413,8 +277,8 @@ compose:
 
             const spec = override
               ?? (preload && originalId === targetId ? preload.source : undefined)
-              ?? sources[targetId]
-              ?? sources[originalId];
+              ?? sourceMap.get(targetId)
+              ?? sourceMap.get(originalId);
 
             let info;
             try {
@@ -433,9 +297,26 @@ compose:
               return fallback;
             }
 
+            let source = info?.source || null;
+            if ((!source || source.type === 'registry') && spec && typeof spec === 'object') {
+              if (spec.type === 'path') {
+                const basePath = spec.path && (spec.path.startsWith('/') || spec.path.startsWith('~'))
+                  ? spec.path
+                  : await joinPath(projectPath, spec.path || '.');
+                source = { type: 'path', path: basePath };
+              } else if (spec.type === 'git' && typeof spec.url === 'string' && spec.url) {
+                source = info?.source || { type: 'git', url: spec.url };
+              } else if (spec.type === 'http' && typeof spec.url === 'string' && spec.url) {
+                source = info?.source || { type: 'http', url: spec.url };
+                if (!source.descriptorPath && spec.descriptorPath) {
+                  source.descriptorPath = spec.descriptorPath;
+                }
+              }
+            }
+
             const record = {
               id: originalId,
-              source: info?.source || { type: 'registry', reference: targetId },
+              source: source || { type: 'registry', reference: targetId },
               dependencies: []
             };
             if (targetId !== originalId) {
@@ -486,9 +367,10 @@ compose:
       input:
         rootId: $.descriptor.id
         projectPath: $.projectPath
-        config: $.resolverConfig
+        config: $.config
         rootDescriptor: $.descriptor
         rootDescriptorText: $.descriptorText
+        configWarnings: $.warnings
       imports:
         pathJoin: lcod://axiom/path/join@1
         fsReadFile: lcod://axiom/fs/read-file@1
@@ -496,6 +378,7 @@ compose:
         hash: lcod://contract/core/hash/sha256@1
         gitClone: lcod://contract/core/git/clone@1
         httpDownload: lcod://axiom/http/download@1
+        cacheDir: lcod://tooling/resolver/cache-dir@1
     out:
       resolverResult: $
 
@@ -514,44 +397,19 @@ compose:
         root: $.resolverResult.root
         warnings: $.resolverResult.warnings
     out:
-      dependencyGraph: =
-      rootIntegrity: =
-      collectedWarnings: =
+      dependencyGraph: dependencyGraph
+      rootIntegrity: rootIntegrity
+      collectedWarnings: collectedWarnings
 
-  - call: lcod://tooling/script@1
+  - call: lcod://resolver/internal/build-lock@1
     in:
-      source: |
-        async ({ state }) => {
-          const descriptor = state.descriptor ?? {};
-          const component = {
-            id: descriptor.id,
-            resolved: descriptor.id,
-            source: { type: 'path', path: '.' },
-            dependencies: Array.isArray(state.dependencyGraph) ? state.dependencyGraph : []
-          };
-          if (state.rootIntegrity) component.integrity = state.rootIntegrity;
-          return {
-            lockDocument: {
-              schemaVersion: '1.0',
-              resolverVersion: '0.1.0',
-              components: [component],
-              warnings: Array.isArray(state.collectedWarnings) ? state.collectedWarnings : []
-            }
-          };
-        }
-      input:
-        descriptor: $.descriptor
-        dependencyGraph: $.dependencyGraph
-        rootIntegrity: $.rootIntegrity
-        collectedWarnings: $.collectedWarnings
+      descriptor: $.descriptor
+      dependencyGraph: $.dependencyGraph
+      warnings: $.collectedWarnings
+      rootIntegrity: $.rootIntegrity
     out:
       lockDocument: lockDocument
-
-  - call: lcod://axiom/toml/stringify@1
-    in:
-      value: $.lockDocument
-    out:
-      lockText: text
+      lockText: lockText
 
   - call: lcod://axiom/fs/write-file@1
     in:
@@ -561,12 +419,21 @@ compose:
     out:
       ok: wrote
 
-  - call: lcod://impl/set@1
+  - call: lcod://tooling/script@1
     in:
-      lockPath: $.lockPath
-      components: $.lockDocument.components
-      warnings: $.lockDocument.warnings
+      source: |
+        async ({ state }) => ({
+          lockPath: state.lockPath,
+          components: Array.isArray(state.components) ? state.components : [],
+          warnings: Array.isArray(state.warnings) && state.warnings.length > 0
+            ? state.warnings
+            : undefined
+        })
+      input:
+        lockPath: $.lockPath
+        components: $.lockDocument.components
+        warnings: $.warnings
     out:
-      lockPath: =
-      components: =
-      warnings: =
+      lockPath: lockPath
+      components: components
+      warnings: warnings

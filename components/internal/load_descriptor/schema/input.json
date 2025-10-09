@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["projectPath"],
+  "properties": {
+    "projectPath": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Absolute or relative path to the project root containing lcp.toml."
+    }
+  },
+  "additionalProperties": true
+}

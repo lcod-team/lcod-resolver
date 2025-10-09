@@ -18,3 +18,7 @@
 - [ ] Stable Node/TS API + CLI
 - [ ] Introduce packaging commands (`assemble` bundle, `ship` runtime wrapper, `build` integration) aligned with spec roadmap.
 - [ ] Ajouter un pré-traitement compose sugar → canonique via le composant de normalisation partagé pour rendre les configurations plus lisibles sans toucher au kernel.
+
+## M3
+- [ ] Scoped registries & internal helpers (#4)
+  - Bundle resolver helper components in-repo, mark their visibility, and auto-load them via the resolver compose.

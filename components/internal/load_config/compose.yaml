@@ -1,0 +1,92 @@
+compose:
+  - call: lcod://flow/if@1
+    in:
+      cond: $.configPath
+    children:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            resolvedPath: $.configPath
+          out:
+            resolvedPath: resolvedPath
+      else:
+        - call: lcod://axiom/path/join@1
+          in:
+            base: $.projectPath
+            segment: "resolve.config.json"
+          out:
+            resolvedPath: path
+    out:
+      effectiveConfigPath: resolvedPath
+
+  - call: lcod://tooling/script@1
+    in:
+      source: |
+        async ({ state, imports }) => {
+          const fallback = '{"sources":{}}';
+          const path = typeof state?.path === 'string' ? state.path : null;
+          if (!path) {
+            return {
+              configText: fallback,
+              warning: 'Resolver configuration missing; defaulting to empty sources.'
+            };
+          }
+          try {
+            const file = await imports.fsReadFile({ path, encoding: 'utf-8' });
+            return { configText: file?.data ?? fallback };
+          } catch (err) {
+            return {
+              configText: fallback,
+              warning: `Resolver configuration missing at ${path}; defaulting to empty sources.`
+            };
+          }
+        }
+      input:
+        path: $.effectiveConfigPath
+      imports:
+        fsReadFile: lcod://axiom/fs/read-file@1
+    out:
+      configText: configText
+      readWarning: warning
+
+  - call: lcod://axiom/json/parse@1
+    in:
+      text: $.configText
+    out:
+      rawConfig: value
+
+  - call: lcod://tooling/script@1
+    in:
+      source: |
+        async ({ state }) => {
+          const config = state.rawConfig && typeof state.rawConfig === 'object'
+            ? state.rawConfig
+            : {};
+          const sources = config.sources && typeof config.sources === 'object' ? config.sources : {};
+          const replace = config.replace && typeof config.replace === 'object' ? config.replace : {};
+          const allowlist = Array.isArray(config.allowlist) ? config.allowlist : null;
+          const warnings = [];
+          if (typeof state.readWarning === 'string' && state.readWarning.length > 0) {
+            warnings.push(state.readWarning);
+          }
+          return {
+            resolverConfig: { ...config, sources, replace, allowlist },
+            warnings
+          };
+        }
+      input:
+        rawConfig: $.rawConfig
+        readWarning: $.readWarning
+    out:
+      resolverConfig: resolverConfig
+      warnings: warnings
+
+  - call: lcod://impl/set@1
+    in:
+      configPath: $.effectiveConfigPath
+      config: $.resolverConfig
+      warnings: $.warnings
+    out:
+      configPath: configPath
+      config: config
+      warnings: warnings

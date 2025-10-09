@@ -3,14 +3,17 @@
 LCOD compose that reads an `lcp.toml` descriptor and emits an `lcp.lock`. The workflow tolerates
 missing resolver configuration by falling back to an empty `sources` map and surfacing a warning in
 the resulting lockfile. `lcod://tooling/resolver@0.1.0` is defined in `compose.yaml` alongside the
-package manifest `lcp.toml`.
+package manifest `lcp.toml`, and delegates descriptor/config/lock boilerplate to the internal helper
+components shipped under `components/internal/*` (`lcod://resolver/internal/load-descriptor@1`,
+etc.).
 
 ## Layout
 
-- `compose.yaml` — resolution pipeline (descriptor load, config fallbacks, dependency graph script).
+- `compose.yaml` — resolution pipeline (descriptor/config helpers + dependency graph script).
 - `schema/resolve.in.json` — input schema (`projectPath` required, optional `configPath`/`outputPath`).
 - `schema/resolve.out.json` — output schema (`lockPath`, `components`, `warnings`).
-- `resolve.config.example.json` — sample resolver configuration with custom sources.
+- `resolve.config.example.json` — sample resolver configuration with custom sources (including the
+  internal helpers referenced by the compose).
 - `state.example.json` — minimal state pointing `projectPath` to the current directory.
 
 ## Prerequisites
@@ -73,12 +76,11 @@ cargo run --bin run_compose -- --compose ./compose.yaml \
 The Rust CLI registers the same core/flow/tooling contracts automatically. Any of the overrides can
 be mixed with `--state` as in the Node example.
 
-The compose relies on `tooling/script@1` with import aliases to call filesystem/network axioms.
+The compose relies on `tooling/script@1` with import aliases to call filesystem/network axioms,
+while the common setup/teardown steps rely on the reusable resolver helpers from `lcod-spec`.
 Runtimes only need to provide the generic cache selector axiom
 `lcod://tooling/resolver/cache-dir@1` in addition to the standard filesystem/git/http/hash
-contracts. The legacy contract
-`lcod://contract/tooling/resolve-dependency@1` remains as a stub for compatibility but the
-compose no longer depends on it.
+contracts.
 
 ## Output
 

@@ -1,0 +1,20 @@
+compose:
+  - call: lcod://flow/if@1
+    in:
+      cond: $.outputPath
+    children:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            lockPath: $.outputPath
+          out:
+            lockPath: lockPath
+      else:
+        - call: lcod://axiom/path/join@1
+          in:
+            base: $.projectPath
+            segment: "lcp.lock"
+          out:
+            lockPath: path
+    out:
+      lockPath: lockPath

@@ -1,0 +1,26 @@
+schemaVersion = "1.0"
+id = "lcod://resolver/internal/load-config@1"
+name = "load-config"
+namespace = "resolver/internal"
+version = "0.1.0"
+kind = "function"
+summary = "Load and normalise resolver configuration from JSON, falling back to empty sources."
+
+[tool]
+name = "load_config"
+description = "Resolve the configuration JSON used by the resolver pipeline."
+inputSchema = "schema/input.json"
+outputSchema = "schema/output.json"
+
+[deps]
+requires = [
+  "lcod://flow/if@1",
+  "lcod://axiom/path/join@1",
+  "lcod://axiom/fs/read-file@1",
+  "lcod://axiom/json/parse@1",
+  "lcod://tooling/script@1",
+  "lcod://impl/set@1"
+]
+
+[docs]
+readme = "README.md"

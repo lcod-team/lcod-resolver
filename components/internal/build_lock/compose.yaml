@@ -1,0 +1,79 @@
+compose:
+  - call: lcod://tooling/script@1
+    in:
+      source: |
+        async ({ state }) => {
+          const descriptor = state.descriptor && typeof state.descriptor === 'object'
+            ? state.descriptor
+            : {};
+          const dependencyGraph = Array.isArray(state.dependencyGraph) ? state.dependencyGraph : [];
+          const warnings = Array.isArray(state.warnings) ? state.warnings : [];
+          const normalizeDependency = (node) => {
+            if (!node || typeof node !== 'object') return null;
+            const entry = { id: node.id };
+            if (typeof node.resolved === 'string' && node.resolved.length > 0) {
+              entry.resolved = node.resolved;
+            }
+            if (typeof node.requested === 'string' && node.requested.length > 0) {
+              entry.requested = node.requested;
+            }
+            if (node.source && typeof node.source === 'object') {
+              entry.source = node.source;
+            }
+            return entry;
+          };
+          const dependencies = Array.isArray(state.dependencyGraph)
+            ? state.dependencyGraph
+                .map(normalizeDependency)
+                .filter((entry) => entry && typeof entry.id === 'string')
+            : [];
+
+          const component = {
+            id: descriptor.id,
+            resolved: descriptor.id,
+            source: { type: 'path', path: '.' },
+            dependencies
+          };
+          if (typeof state.rootIntegrity === 'string' && state.rootIntegrity.length > 0) {
+            component.integrity = state.rootIntegrity;
+          }
+          return {
+            lockDocument: {
+              schemaVersion: '1.0',
+              resolverVersion: '0.1.0',
+              components: [component]
+            },
+            warnings
+          };
+        }
+      input:
+        descriptor: $.descriptor
+        dependencyGraph: $.dependencyGraph
+        warnings: $.warnings
+        rootIntegrity: $.rootIntegrity
+    out:
+      lockDocument: lockDocument
+      warnings: warnings
+
+  - call: lcod://axiom/toml/stringify@1
+    in:
+      value: $.lockDocument
+    out:
+      lockText: text
+
+  - call: lcod://tooling/script@1
+    in:
+      source: |
+        async ({ state }) => ({
+          lockDocument: state.lockDocument,
+          lockText: state.lockText,
+          warnings: Array.isArray(state.warnings) ? state.warnings : []
+        })
+      input:
+        lockDocument: $.lockDocument
+        lockText: $.lockText
+        warnings: $.warnings
+    out:
+      lockDocument: lockDocument
+      lockText: lockText
+      warnings: warnings

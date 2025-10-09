@@ -1,0 +1,24 @@
+schemaVersion = "1.0"
+id = "lcod://resolver/internal/load-descriptor@1"
+name = "load-descriptor"
+namespace = "resolver/internal"
+version = "0.1.0"
+kind = "function"
+summary = "Load an LCOD descriptor (`lcp.toml`) from a project path."
+
+[tool]
+name = "load_descriptor"
+description = "Read and parse the project descriptor."
+inputSchema = "schema/input.json"
+outputSchema = "schema/output.json"
+
+[deps]
+requires = [
+  "lcod://axiom/path/join@1",
+  "lcod://axiom/fs/read-file@1",
+  "lcod://axiom/toml/parse@1",
+  "lcod://impl/set@1"
+]
+
+[docs]
+readme = "README.md"
