@@ -3,9 +3,8 @@
 LCOD compose that reads an `lcp.toml` descriptor and emits an `lcp.lock`. The workflow tolerates
 missing resolver configuration by falling back to an empty `sources` map and surfacing a warning in
 the resulting lockfile. `lcod://tooling/resolver@0.1.0` is defined in `compose.yaml` alongside the
-package manifest `lcp.toml`, and delegates descriptor/config/lock boilerplate to the internal helper
-components shipped under `components/internal/*` (`lcod://resolver/internal/load-descriptor@1`,
-etc.).
+package manifest `lcp.toml`, and delegates descriptor/config/cache/dependency steps to the internal
+helper components under `components/internal/*`.
 
 ## Layout
 

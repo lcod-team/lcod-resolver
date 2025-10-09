@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["projectPath", "cacheRoot", "normalizedConfig", "rootDescriptor", "rootDescriptorText"],
+  "properties": {
+    "projectPath": {
+      "type": "string",
+      "description": "Base project directory."
+    },
+    "cacheRoot": {
+      "type": "string",
+      "description": "Cache directory used for downloads."
+    },
+    "normalizedConfig": {
+      "type": "object",
+      "description": "Normalized configuration produced by prepare-config."
+    },
+    "rootId": {
+      "type": ["string", "null"],
+      "description": "Explicit root id if provided."
+    },
+    "rootDescriptor": {
+      "type": "object",
+      "description": "Parsed root descriptor."
+    },
+    "rootDescriptorText": {
+      "type": "string",
+      "description": "Raw root descriptor contents."
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Existing warnings to propagate."
+    }
+  },
+  "additionalProperties": true
+}

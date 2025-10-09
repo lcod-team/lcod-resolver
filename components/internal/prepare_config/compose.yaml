@@ -1,0 +1,48 @@
+compose:
+  - call: lcod://tooling/script@1
+    in:
+      source: |
+        async ({ state }) => {
+          const warnings = Array.isArray(state.warnings)
+            ? state.warnings.filter((entry) => typeof entry === 'string' && entry.length > 0)
+            : [];
+          const baseConfig = state.resolverConfig && typeof state.resolverConfig === 'object'
+            ? state.resolverConfig
+            : (state.config && typeof state.config === 'object' ? state.config : {});
+          const sources = baseConfig.sources && typeof baseConfig.sources === 'object'
+            ? Object.fromEntries(Object.entries(baseConfig.sources))
+            : {};
+          const replaceRaw = baseConfig.replace && typeof baseConfig.replace === 'object'
+            ? baseConfig.replace
+            : {};
+          const allowlist = Array.isArray(baseConfig.allowlist)
+            ? baseConfig.allowlist.map((entry) => (typeof entry === 'string' ? entry.trim() : String(entry ?? ''))).filter((entry) => entry.length > 0)
+            : null;
+
+          const replaceAlias = {};
+          const replaceSpec = {};
+          for (const [key, value] of Object.entries(replaceRaw)) {
+            if (typeof value === 'string') {
+              replaceAlias[key] = value;
+            } else if (value && typeof value === 'object') {
+              replaceSpec[key] = value;
+            }
+          }
+
+          return {
+            normalizedConfig: {
+              sources,
+              replaceAlias,
+              replaceSpec,
+              allowlist
+            },
+            warnings
+          };
+        }
+      input:
+        resolverConfig: $.resolverConfig
+        config: $.config
+        warnings: $.warnings
+    out:
+      normalizedConfig: normalizedConfig
+      warnings: warnings

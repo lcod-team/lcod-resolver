@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["resolverResult"],
+  "properties": {
+    "resolverResult": {
+      "type": "object",
+      "description": "Resolver output containing the root dependency tree."
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional warnings to merge."
+    }
+  },
+  "additionalProperties": true
+}

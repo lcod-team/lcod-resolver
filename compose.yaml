@@ -23,383 +23,42 @@ compose:
     out:
       lockPath: lockPath
 
-  - call: lcod://tooling/script@1
+  - call: lcod://resolver/internal/prepare-config@1
     in:
-      source: |
-        async ({ state, imports }, api) => {
-          const warnings = Array.isArray(state?.configWarnings)
-            ? state.configWarnings.filter((entry) => typeof entry === 'string' && entry.length > 0)
-            : [];
-          const config = typeof state?.resolverConfig === 'object' && state.resolverConfig
-            ? state.resolverConfig
-            : (typeof state?.config === 'object' && state.config ? state.config : {});
-          const sourcesObj = typeof config.sources === 'object' && config.sources ? config.sources : {};
-          const sourceMap = new Map(Object.entries(sourcesObj));
-          const replaceRaw = typeof config.replace === 'object' && config.replace ? config.replace : {};
-          const allowlist = Array.isArray(config.allowlist)
-            ? config.allowlist
-                .map((entry) => (typeof entry === 'string' ? entry.trim() : String(entry ?? '')))
-                .filter((entry) => entry.length > 0)
-            : null;
-          const replaceAlias = new Map();
-          const replaceSpec = new Map();
-          for (const [from, rule] of Object.entries(replaceRaw)) {
-            if (typeof rule === 'string') {
-              replaceAlias.set(from, rule);
-            } else if (rule && typeof rule === 'object') {
-              replaceSpec.set(from, rule);
-            }
-          }
-          const projectPath = typeof state?.projectPath === 'string' && state.projectPath
-            ? state.projectPath
-            : process.cwd();
-
-          const cacheInfo = await imports.cacheDir({ projectPath });
-          const cacheRootRaw = cacheInfo?.path || projectPath;
-          const normalised = await api.call('lcod://axiom/path/join@1', { base: cacheRootRaw, segment: '.' });
-          const cacheRoot = normalised?.path || cacheRootRaw;
-
-          const resolved = new Map();
-
-          const hashHex = async (text) => {
-            const res = await imports.hash({ data: text, encoding: 'utf-8' });
-            return res?.hex ? `sha256-${res.hex}` : undefined;
-          };
-
-          const parseToml = async (text) => {
-            const parsed = await imports.tomlParse({ text });
-            return parsed?.value || {};
-          };
-
-          const joinPath = async (base, segment) => {
-            const joined = await imports.pathJoin({ base, segment });
-            return joined?.path || base;
-          };
-
-          const isAllowed = (candidate) => {
-            if (!allowlist || allowlist.length === 0) return true;
-            return allowlist.some((rule) => {
-              if (rule.endsWith('*')) {
-                return candidate.startsWith(rule.slice(0, -1));
-              }
-              if (rule.endsWith('/')) {
-                return candidate.startsWith(rule);
-              }
-              return candidate === rule || candidate.startsWith(`${rule}/`);
-            });
-          };
-
-          const selectReplacement = (id) => {
-            let current = id;
-            let override = null;
-            const visited = new Set();
-            while (true) {
-              if (replaceSpec.has(current)) {
-                override = replaceSpec.get(current);
-                break;
-              }
-              if (!replaceAlias.has(current)) {
-                break;
-              }
-              if (visited.has(current)) {
-                warnings.push(`Replacement cycle detected: ${[...visited, current].join(' -> ')}`);
-                break;
-              }
-              visited.add(current);
-              current = replaceAlias.get(current);
-            }
-            return { targetId: current, override };
-          };
-
-          const readDescriptor = async (descriptorPath) => {
-            const file = await imports.fsReadFile({ path: descriptorPath, encoding: 'utf-8' });
-            const text = file?.data ?? '';
-            const descriptor = await parseToml(text);
-            const integrity = await hashHex(text);
-            const requires = Array.isArray(descriptor?.deps?.requires) ? descriptor.deps.requires : [];
-            return { descriptor, descriptorText: text, integrity, childIds: requires };
-          };
-
-          const resolvePathSpec = async (spec, preload) => {
-            const basePath = spec.path && (spec.path.startsWith('/') || spec.path.startsWith('~'))
-              ? spec.path
-              : await joinPath(projectPath, spec.path || '.');
-            if (preload && preload.descriptor && preload.descriptorText) {
-              const integrity = await hashHex(preload.descriptorText);
-              const childIds = Array.isArray(preload.descriptor?.deps?.requires) ? preload.descriptor.deps.requires : [];
-              return {
-                descriptor: preload.descriptor,
-                descriptorText: preload.descriptorText,
-                integrity,
-                source: preload.source || { type: 'path', path: basePath },
-                childIds
-              };
-            }
-            const descriptorPath = await joinPath(basePath, 'lcp.toml');
-            const data = await readDescriptor(descriptorPath);
-            return {
-              ...data,
-              source: { type: 'path', path: basePath }
-            };
-          };
-
-          const resolveGitSpec = async (id, spec) => {
-            if (typeof spec.url !== 'string' || !spec.url) {
-              throw new Error(`Missing git url for ${id}`);
-            }
-            const keyPayload = JSON.stringify({ id, url: spec.url, ref: spec.ref ?? null, subdir: spec.subdir ?? null });
-            const keyHash = await imports.hash({ data: keyPayload, encoding: 'utf-8' });
-            const repoRoot = await joinPath(cacheRoot, 'git');
-            const repoDir = await joinPath(repoRoot, keyHash?.hex || 'repo');
-            const descriptorRoot = spec.subdir ? await joinPath(repoDir, spec.subdir) : repoDir;
-            const descriptorPath = await joinPath(descriptorRoot, 'lcp.toml');
-
-            let data;
-            let cloneMeta = null;
-            try {
-              data = await readDescriptor(descriptorPath);
-            } catch (err) {
-              const cloneInput = { url: spec.url, dest: repoDir };
-              if (spec.ref) cloneInput.ref = spec.ref;
-              if (spec.depth) cloneInput.depth = spec.depth;
-              if (spec.subdir) cloneInput.subdir = spec.subdir;
-              if (spec.auth) cloneInput.auth = spec.auth;
-              cloneMeta = await imports.gitClone(cloneInput);
-              data = await readDescriptor(descriptorPath);
-            }
-
-            const source = {
-              type: 'git',
-              url: spec.url,
-              path: descriptorRoot
-            };
-            if (spec.ref) source.ref = spec.ref;
-            if (spec.subdir) source.subdir = spec.subdir;
-            if (cloneMeta?.commit) source.commit = cloneMeta.commit;
-            if (!source.ref && cloneMeta?.ref) source.ref = cloneMeta.ref;
-            if (cloneMeta?.source?.fetchedAt) source.fetchedAt = cloneMeta.source.fetchedAt;
-
-            return {
-              descriptor: data.descriptor,
-              descriptorText: data.descriptorText,
-              integrity: data.integrity,
-              source,
-              childIds: data.childIds
-            };
-          };
-
-          const resolveHttpSpec = async (id, spec) => {
-            if (typeof spec.url !== 'string' || !spec.url) {
-              throw new Error(`Missing http url for ${id}`);
-            }
-            const keyPayload = JSON.stringify({ id, url: spec.url, descriptorPath: spec.descriptorPath ?? null });
-            const keyHash = await imports.hash({ data: keyPayload, encoding: 'utf-8' });
-            const httpRoot = await joinPath(cacheRoot, 'http');
-            const artifactDir = await joinPath(httpRoot, keyHash?.hex || 'artifact');
-            const filename = typeof spec.filename === 'string' && spec.filename ? spec.filename : 'artifact.toml';
-            const artifactPath = await joinPath(artifactDir, filename);
-            const descriptorPath = spec.descriptorPath
-              ? await joinPath(artifactDir, spec.descriptorPath)
-              : artifactPath;
-
-            let data;
-            try {
-              data = await readDescriptor(descriptorPath);
-            } catch (err) {
-              const downloadInput = { url: spec.url, path: artifactPath };
-              if (spec.method) downloadInput.method = spec.method;
-              if (spec.headers) downloadInput.headers = spec.headers;
-              if (spec.query) downloadInput.query = spec.query;
-              if (spec.timeoutMs) downloadInput.timeoutMs = spec.timeoutMs;
-              if (spec.followRedirects !== undefined) downloadInput.followRedirects = spec.followRedirects;
-              if (spec.body !== undefined) downloadInput.body = spec.body;
-              if (spec.bodyEncoding) downloadInput.bodyEncoding = spec.bodyEncoding;
-              await imports.httpDownload(downloadInput);
-              data = await readDescriptor(descriptorPath);
-            }
-
-            const source = {
-              type: 'http',
-              url: spec.url,
-              path: spec.descriptorPath ? artifactDir : descriptorPath
-            };
-            if (spec.descriptorPath) source.descriptorPath = spec.descriptorPath;
-            if (spec.filename) source.filename = filename;
-
-            return {
-              descriptor: data.descriptor,
-              descriptorText: data.descriptorText,
-              integrity: data.integrity,
-              source,
-              childIds: data.childIds
-            };
-          };
-
-          const loadSpec = async (id, spec, preload) => {
-            if (spec?.type === 'path') return resolvePathSpec(spec, preload);
-            if (spec?.type === 'git') return resolveGitSpec(id, spec);
-            if (spec?.type === 'http') return resolveHttpSpec(id, spec);
-            if (preload && preload.descriptor && preload.descriptorText) {
-              const integrity = await hashHex(preload.descriptorText);
-              const childIds = Array.isArray(preload.descriptor?.deps?.requires) ? preload.descriptor.deps.requires : [];
-              return {
-                descriptor: preload.descriptor,
-                descriptorText: preload.descriptorText,
-                integrity,
-                source: preload.source || { type: 'path', path: projectPath },
-                childIds
-              };
-            }
-            return {
-              descriptor: {},
-              descriptorText: '',
-              source: { type: 'registry', reference: id },
-              childIds: []
-            };
-          };
-
-          const resolveDependency = async (depId, stack = [], preload) => {
-            const originalId = typeof depId === 'string' && depId ? depId : String(depId);
-            if (resolved.has(originalId)) return resolved.get(originalId);
-            if (!isAllowed(originalId)) {
-              throw new Error(`Dependency ${originalId} is not allowed by resolver configuration`);
-            }
-
-            const { targetId, override } = selectReplacement(originalId);
-            if (!isAllowed(targetId)) {
-              throw new Error(`Dependency ${targetId} (replacement for ${originalId}) is not allowed by resolver configuration`);
-            }
-
-            if (stack.includes(originalId)) {
-              warnings.push(`Dependency cycle detected: ${[...stack, originalId].join(' -> ')}`);
-              return resolved.get(originalId);
-            }
-
-            const spec = override
-              ?? (preload && originalId === targetId ? preload.source : undefined)
-              ?? sourceMap.get(targetId)
-              ?? sourceMap.get(originalId);
-
-            let info;
-            try {
-              const preloadCandidate = originalId === targetId ? preload : undefined;
-              info = await loadSpec(targetId, spec, preloadCandidate);
-            } catch (err) {
-              warnings.push(`Failed to load ${targetId} for ${originalId}: ${err.message}`);
-              const fallbackSource = spec && spec.type ? spec.type : 'registry';
-              const fallback = {
-                id: originalId,
-                resolved: targetId !== originalId ? targetId : undefined,
-                source: { type: fallbackSource, reference: targetId },
-                dependencies: []
-              };
-              resolved.set(originalId, fallback);
-              return fallback;
-            }
-
-            let source = info?.source || null;
-            if ((!source || source.type === 'registry') && spec && typeof spec === 'object') {
-              if (spec.type === 'path') {
-                const basePath = spec.path && (spec.path.startsWith('/') || spec.path.startsWith('~'))
-                  ? spec.path
-                  : await joinPath(projectPath, spec.path || '.');
-                source = { type: 'path', path: basePath };
-              } else if (spec.type === 'git' && typeof spec.url === 'string' && spec.url) {
-                source = info?.source || { type: 'git', url: spec.url };
-              } else if (spec.type === 'http' && typeof spec.url === 'string' && spec.url) {
-                source = info?.source || { type: 'http', url: spec.url };
-                if (!source.descriptorPath && spec.descriptorPath) {
-                  source.descriptorPath = spec.descriptorPath;
-                }
-              }
-            }
-
-            const record = {
-              id: originalId,
-              source: source || { type: 'registry', reference: targetId },
-              dependencies: []
-            };
-            if (targetId !== originalId) {
-              record.resolved = targetId;
-            }
-            if (info?.integrity) record.integrity = info.integrity;
-            resolved.set(originalId, record);
-
-            const childIds = Array.isArray(info?.childIds) ? info.childIds : [];
-            for (const child of childIds) {
-              if (typeof child !== 'string' || !child) continue;
-              try {
-                const childRecord = await resolveDependency(child, [...stack, originalId]);
-                if (childRecord) record.dependencies.push(childRecord);
-              } catch (err) {
-                warnings.push(`Failed to resolve ${child} for ${originalId}: ${err.message}`);
-              }
-            }
-
-            return record;
-          };
-
-          const rootId = typeof state?.rootId === 'string' && state.rootId
-            ? state.rootId
-            : (state?.rootDescriptor && state.rootDescriptor.id);
-          const preloadRoot = {
-            descriptor: state?.rootDescriptor,
-            descriptorText: state?.rootDescriptorText,
-            source: { type: 'path', path: projectPath }
-          };
-
-          const root = rootId
-            ? await resolveDependency(rootId, [], preloadRoot)
-            : {
-                id: undefined,
-                source: { type: 'path', path: projectPath },
-                dependencies: []
-              };
-          if (!rootId) {
-            warnings.push('Root descriptor is missing an id');
-          }
-
-          return {
-            root,
-            warnings
-          };
-        }
-      input:
-        rootId: $.descriptor.id
-        projectPath: $.projectPath
-        config: $.config
-        rootDescriptor: $.descriptor
-        rootDescriptorText: $.descriptorText
-        configWarnings: $.warnings
-      imports:
-        pathJoin: lcod://axiom/path/join@1
-        fsReadFile: lcod://axiom/fs/read-file@1
-        tomlParse: lcod://axiom/toml/parse@1
-        hash: lcod://contract/core/hash/sha256@1
-        gitClone: lcod://contract/core/git/clone@1
-        httpDownload: lcod://axiom/http/download@1
-        cacheDir: lcod://tooling/resolver/cache-dir@1
+      resolverConfig: $.resolverConfig
+      config: $.config
+      warnings: $.configWarnings
     out:
-      resolverResult: $
+      normalizedConfig: normalizedConfig
+      warnings: normalizedWarnings
 
-  - call: lcod://tooling/script@1
+  - call: lcod://resolver/internal/prepare-cache@1
     in:
-      source: |
-        async ({ state }) => {
-          const root = state.root ?? {};
-          return {
-            dependencyGraph: Array.isArray(root.dependencies) ? root.dependencies : [],
-            rootIntegrity: root.integrity || null,
-            collectedWarnings: Array.isArray(state.warnings) ? state.warnings : []
-          };
-        }
-      input:
-        root: $.resolverResult.root
-        warnings: $.resolverResult.warnings
+      projectPath: $.projectPath
+    out:
+      cacheRoot: cacheRoot
+
+  - call: lcod://resolver/internal/resolve-dependencies@1
+    in:
+      projectPath: $.projectPath
+      cacheRoot: $.cacheRoot
+      normalizedConfig: $.normalizedConfig
+      rootId: $.descriptor.id
+      rootDescriptor: $.descriptor
+      rootDescriptorText: $.descriptorText
+      warnings: $.normalizedWarnings
+    out:
+      resolverResult: resolverResult
+      warnings: resolveWarnings
+
+  - call: lcod://resolver/internal/summarize-result@1
+    in:
+      resolverResult: $.resolverResult
+      warnings: $.resolveWarnings
     out:
       dependencyGraph: dependencyGraph
       rootIntegrity: rootIntegrity
-      collectedWarnings: collectedWarnings
+      warnings: collectedWarnings
 
   - call: lcod://resolver/internal/build-lock@1
     in:

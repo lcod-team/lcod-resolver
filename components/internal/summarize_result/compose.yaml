@@ -1,0 +1,24 @@
+compose:
+  - call: lcod://tooling/script@1
+    in:
+      source: |
+        async ({ state }) => {
+          const root = state.resolverResult && typeof state.resolverResult === 'object'
+            ? state.resolverResult.root || {}
+            : {};
+          const warnings = state.resolverResult && Array.isArray(state.resolverResult.warnings)
+            ? state.resolverResult.warnings
+            : (Array.isArray(state.warnings) ? state.warnings : []);
+          return {
+            dependencyGraph: Array.isArray(root.dependencies) ? root.dependencies : [],
+            rootIntegrity: root.integrity || null,
+            warnings
+          };
+        }
+      input:
+        resolverResult: $.resolverResult
+        warnings: $.warnings
+    out:
+      dependencyGraph: dependencyGraph
+      rootIntegrity: rootIntegrity
+      warnings: warnings

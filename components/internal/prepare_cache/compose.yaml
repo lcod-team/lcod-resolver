@@ -1,0 +1,21 @@
+compose:
+  - call: lcod://tooling/script@1
+    in:
+      source: |
+        async ({ state, imports }) => {
+          const info = await imports.cacheDir({ projectPath: state.projectPath });
+          const base = info?.path && typeof info.path === 'string' && info.path.length > 0
+            ? info.path
+            : state.projectPath;
+          const normalised = await imports.pathJoin({ base, segment: '.' });
+          return {
+            cacheRoot: normalised?.path || base
+          };
+        }
+      input:
+        projectPath: $.projectPath
+      imports:
+        cacheDir: lcod://tooling/resolver/cache-dir@1
+        pathJoin: lcod://axiom/path/join@1
+    out:
+      cacheRoot: cacheRoot

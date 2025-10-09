@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["normalizedConfig", "warnings"],
+  "properties": {
+    "normalizedConfig": {
+      "type": "object",
+      "required": ["sources", "replaceAlias", "replaceSpec"],
+      "properties": {
+        "sources": {
+          "type": "object",
+          "description": "Source map keyed by component identifier."
+        },
+        "replaceAlias": {
+          "type": "object",
+          "description": "Alias replacements (id -> replacement id)."
+        },
+        "replaceSpec": {
+          "type": "object",
+          "description": "Inline replacement specifications."
+        },
+        "allowlist": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "array", "items": { "type": "string" } }
+          ],
+          "description": "Trimmed allowlist entries or null when unused."
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Warnings propagated to subsequent steps."
+    }
+  },
+  "additionalProperties": true
+}

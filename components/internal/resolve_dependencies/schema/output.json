@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["resolverResult", "warnings"],
+  "properties": {
+    "resolverResult": {
+      "type": "object",
+      "description": "Resolver result containing root dependency graph and warnings."
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Warnings emitted during resolution."
+    }
+  },
+  "additionalProperties": true
+}

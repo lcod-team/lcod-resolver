@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "resolverConfig": {
+      "type": "object",
+      "description": "Resolver configuration returned by load-config."
+    },
+    "config": {
+      "type": "object",
+      "description": "Fallback configuration if resolverConfig is unavailable."
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Warnings emitted during config loading."
+    }
+  },
+  "additionalProperties": true
+}
