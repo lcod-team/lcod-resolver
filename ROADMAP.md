@@ -21,4 +21,4 @@
 
 ## M3
 - [ ] Scoped registries & internal helpers (#4)
-  - Bundle resolver helper components in-repo, mark their visibility, and auto-load them via the resolver compose.
+  - Bundle resolver helper components with `scope = "workspace"`, resolve relative IDs, and auto-load them via the resolver compose.

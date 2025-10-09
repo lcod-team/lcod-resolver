@@ -1,0 +1,68 @@
+schemaVersion = "1.0"
+id = "lcod://tooling/resolver@0.1.0"
+name = "resolver"
+namespace = "tooling"
+version = "0.1.0"
+kind = "workflow"
+summary = "Composite resolver that produces lcp.lock from lcp.toml using filesystem/network axioms."
+
+[tool]
+name = "resolve"
+description = "Resolve dependencies and produce an lcp.lock"
+inputSchema = "schema/resolve.in.json"
+outputSchema = "schema/resolve.out.json"
+
+[workspace.scopeAliases]
+internal = "internal"
+
+[[workspace.components]]
+id = "internal/load-descriptor"
+path = "components/internal/load_descriptor"
+
+[[workspace.components]]
+id = "internal/load-config"
+path = "components/internal/load_config"
+
+[[workspace.components]]
+id = "internal/lock-path"
+path = "components/internal/lock_path"
+
+[[workspace.components]]
+id = "internal/prepare-config"
+path = "components/internal/prepare_config"
+
+[[workspace.components]]
+id = "internal/prepare-cache"
+path = "components/internal/prepare_cache"
+
+[[workspace.components]]
+id = "internal/resolve-dependencies"
+path = "components/internal/resolve_dependencies"
+
+[[workspace.components]]
+id = "internal/summarize-result"
+path = "components/internal/summarize_result"
+
+[[workspace.components]]
+id = "internal/build-lock"
+path = "components/internal/build_lock"
+
+[deps]
+requires = [
+  "lcod://axiom/fs/write-file@1",
+  "lcod://flow/foreach@1",
+  "lcod://contract/tooling/resolve-dependency@1",
+  "lcod://impl/set@1",
+  "lcod://tooling/resolver/cache-dir@1",
+  "internal/load-descriptor",
+  "internal/load-config",
+  "internal/lock-path",
+  "internal/prepare-config",
+  "internal/prepare-cache",
+  "internal/resolve-dependencies",
+  "internal/summarize-result",
+  "internal/build-lock"
+]
+
+[docs]
+readme = "README.md"

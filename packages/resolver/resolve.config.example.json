@@ -1,0 +1,49 @@
+{
+  "allowlist": [
+    "lcod://example"
+  ],
+  "replace": {
+    "lcod://examples/demo/my_weather@0.1.0": {
+      "type": "path",
+      "path": "../../../lcod-spec/examples/demo/my_weather"
+    }
+  },
+  "sources": {
+    "lcod://examples/demo/my_weather@0.1.0": {
+      "type": "path",
+      "path": "../../../lcod-spec/examples/demo/my_weather"
+    },
+    "lcod://tooling/resolver/internal/load-descriptor@0.1.0": {
+      "type": "path",
+      "path": "components/internal/load_descriptor"
+    },
+    "lcod://tooling/resolver/internal/load-config@0.1.0": {
+      "type": "path",
+      "path": "components/internal/load_config"
+    },
+    "lcod://tooling/resolver/internal/lock-path@0.1.0": {
+      "type": "path",
+      "path": "components/internal/lock_path"
+    },
+    "lcod://tooling/resolver/internal/prepare-config@0.1.0": {
+      "type": "path",
+      "path": "components/internal/prepare_config"
+    },
+    "lcod://tooling/resolver/internal/prepare-cache@0.1.0": {
+      "type": "path",
+      "path": "components/internal/prepare_cache"
+    },
+    "lcod://tooling/resolver/internal/resolve-dependencies@0.1.0": {
+      "type": "path",
+      "path": "components/internal/resolve_dependencies"
+    },
+    "lcod://tooling/resolver/internal/summarize-result@0.1.0": {
+      "type": "path",
+      "path": "components/internal/summarize_result"
+    },
+    "lcod://tooling/resolver/internal/build-lock@0.1.0": {
+      "type": "path",
+      "path": "components/internal/build_lock"
+    }
+  }
+}

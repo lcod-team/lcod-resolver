@@ -1,5 +1,5 @@
 compose:
-  - call: lcod://resolver/internal/load-descriptor@1
+  - call: internal/load-descriptor
     in:
       projectPath: $.projectPath
     out:
@@ -7,7 +7,7 @@ compose:
       descriptorText: descriptorText
       descriptorPath: descriptorPath
 
-  - call: lcod://resolver/internal/load-config@1
+  - call: internal/load-config
     in:
       projectPath: $.projectPath
       configPath: $.configPath
@@ -16,14 +16,14 @@ compose:
       configPath: resolvedConfigPath
       warnings: configWarnings
 
-  - call: lcod://resolver/internal/lock-path@1
+  - call: internal/lock-path
     in:
       projectPath: $.projectPath
       outputPath: $.outputPath
     out:
       lockPath: lockPath
 
-  - call: lcod://resolver/internal/prepare-config@1
+  - call: internal/prepare-config
     in:
       resolverConfig: $.resolverConfig
       config: $.config
@@ -32,13 +32,13 @@ compose:
       normalizedConfig: normalizedConfig
       warnings: normalizedWarnings
 
-  - call: lcod://resolver/internal/prepare-cache@1
+  - call: internal/prepare-cache
     in:
       projectPath: $.projectPath
     out:
       cacheRoot: cacheRoot
 
-  - call: lcod://resolver/internal/resolve-dependencies@1
+  - call: internal/resolve-dependencies
     in:
       projectPath: $.projectPath
       cacheRoot: $.cacheRoot
@@ -51,7 +51,7 @@ compose:
       resolverResult: resolverResult
       warnings: resolveWarnings
 
-  - call: lcod://resolver/internal/summarize-result@1
+  - call: internal/summarize-result
     in:
       resolverResult: $.resolverResult
       warnings: $.resolveWarnings
@@ -60,7 +60,7 @@ compose:
       rootIntegrity: rootIntegrity
       warnings: collectedWarnings
 
-  - call: lcod://resolver/internal/build-lock@1
+  - call: internal/build-lock
     in:
       descriptor: $.descriptor
       dependencyGraph: $.dependencyGraph

@@ -62,6 +62,40 @@ compose:
             });
           };
 
+          const canonicalizeWorkspaceId = (candidate, manifest) => {
+            if (typeof candidate !== 'string' || !candidate) return candidate;
+            if (candidate.startsWith('lcod://')) return candidate;
+            const scopeAliases = manifest?.workspace?.scopeAliases;
+            const aliasMap = scopeAliases && typeof scopeAliases === 'object' ? scopeAliases : {};
+            const manifestId = typeof manifest?.id === 'string' ? manifest.id : null;
+            const version = typeof manifest?.version === 'string'
+              ? manifest.version
+              : (manifestId ? manifestId.split('@').pop() : null);
+            const basePath = (() => {
+              if (manifestId && manifestId.startsWith('lcod://')) {
+                return manifestId.slice('lcod://'.length).split('@')[0];
+              }
+              const ns = typeof manifest?.namespace === 'string' ? manifest.namespace : null;
+              const name = typeof manifest?.name === 'string' ? manifest.name : null;
+              return [ns, name].filter(Boolean).join('/');
+            })();
+            const segments = candidate.replace(/^\.\//, '').split('/').filter(Boolean);
+            if (!basePath || segments.length === 0) return candidate;
+            const alias = segments[0];
+            const mapped = aliasMap[alias] ?? alias;
+            const remainder = segments.slice(1);
+            const fullPath = [basePath, mapped, ...remainder].filter(Boolean).join('/');
+            const ver = version || '0.0.0';
+            return `lcod://${fullPath}@${ver}`;
+          };
+
+          const canonicalizeRequirements = (requires, manifest) => {
+            if (!Array.isArray(requires)) return [];
+            return requires
+              .map((dep) => canonicalizeWorkspaceId(dep, manifest))
+              .filter((dep) => typeof dep === 'string' && dep.length > 0);
+          };
+
           const selectReplacement = (id) => {
             let current = id;
             let override = null;
@@ -90,7 +124,8 @@ compose:
             const descriptor = await parseToml(text);
             const integrity = await hashHex(text);
             const requires = Array.isArray(descriptor?.deps?.requires) ? descriptor.deps.requires : [];
-            return { descriptor, descriptorText: text, integrity, childIds: requires };
+            const childIds = canonicalizeRequirements(requires, descriptor);
+            return { descriptor, descriptorText: text, integrity, childIds };
           };
 
           const resolvePathSpec = async (spec, preload) => {
@@ -99,7 +134,10 @@ compose:
               : await joinPath(projectPath, spec.path || '.');
             if (preload && preload.descriptor && preload.descriptorText) {
               const integrity = await hashHex(preload.descriptorText);
-              const childIds = Array.isArray(preload.descriptor?.deps?.requires) ? preload.descriptor.deps.requires : [];
+              const childIds = canonicalizeRequirements(
+                Array.isArray(preload.descriptor?.deps?.requires) ? preload.descriptor.deps.requires : [],
+                preload.descriptor
+              );
               return {
                 descriptor: preload.descriptor,
                 descriptorText: preload.descriptorText,
@@ -214,7 +252,10 @@ compose:
             if (spec?.type === 'http') return resolveHttpSpec(id, spec);
             if (preload && preload.descriptor && preload.descriptorText) {
               const integrity = await hashHex(preload.descriptorText);
-              const childIds = Array.isArray(preload.descriptor?.deps?.requires) ? preload.descriptor.deps.requires : [];
+              const childIds = canonicalizeRequirements(
+                Array.isArray(preload.descriptor?.deps?.requires) ? preload.descriptor.deps.requires : [],
+                preload.descriptor
+              );
               return {
                 descriptor: preload.descriptor,
                 descriptorText: preload.descriptorText,

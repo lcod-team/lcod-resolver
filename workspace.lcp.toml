@@ -1,0 +1,8 @@
+schemaVersion = "1.0"
+
+[workspace]
+namespace = "tooling"
+packages = ["resolver"]
+
+[workspace.scopeAliases]
+internal = "internal"
