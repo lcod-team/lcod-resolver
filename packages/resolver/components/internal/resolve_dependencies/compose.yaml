@@ -1,11 +1,23 @@
 compose:
+  - call: lcod://tooling/resolver/register_components@0.1.0
+    in:
+      specRoot: $.normalizedConfig.specRoot
+    out:
+      registrationWarnings: registrationWarnings
+
   - call: lcod://tooling/script@1
     in:
       source: |
         async ({ state, imports }) => {
-          const warnings = Array.isArray(state.warnings)
-            ? [...state.warnings]
+          const registrationWarnings = Array.isArray(state.registrationWarnings)
+            ? state.registrationWarnings.filter((entry) => typeof entry === 'string' && entry.length > 0)
             : [];
+          const warnings = Array.isArray(state.warnings)
+            ? [
+                ...state.warnings.filter((entry) => typeof entry === 'string' && entry.length > 0),
+                ...registrationWarnings
+              ]
+            : registrationWarnings.slice();
           const projectPath = typeof state.projectPath === 'string' && state.projectPath.length > 0
             ? state.projectPath
             : process.cwd();
@@ -16,9 +28,17 @@ compose:
           const normalized = state.normalizedConfig && typeof state.normalizedConfig === 'object'
             ? state.normalizedConfig
             : {};
-          const sourcesObj = normalized.sources && typeof normalized.sources === 'object'
+          let sourcesObj = normalized.sources && typeof normalized.sources === 'object'
             ? normalized.sources
             : {};
+          if (!sourcesObj || Object.keys(sourcesObj).length === 0) {
+            const configSources = state.config && typeof state.config === 'object' && typeof state.config.sources === 'object'
+              ? state.config.sources
+              : null;
+            if (configSources) {
+              sourcesObj = configSources;
+            }
+          }
           const replaceAliasObj = normalized.replaceAlias && typeof normalized.replaceAlias === 'object'
             ? normalized.replaceAlias
             : {};
@@ -337,6 +357,30 @@ compose:
               record.resolved = targetId;
             }
             if (info?.integrity) record.integrity = info.integrity;
+            const configuredSpec = sourcesObj[targetId] || sourcesObj[originalId];
+            if (record.source && record.source.type === 'registry' && configuredSpec && typeof configuredSpec === 'object') {
+              if (configuredSpec.type === 'path' && typeof configuredSpec.path === 'string' && configuredSpec.path.length > 0) {
+                const basePath = configuredSpec.path && (configuredSpec.path.startsWith('/') || configuredSpec.path.startsWith('~'))
+                  ? configuredSpec.path
+                  : await joinPath(projectPath, configuredSpec.path || '.');
+                record.source = { type: 'path', path: basePath };
+              } else if (configuredSpec.type === 'git' && typeof configuredSpec.url === 'string' && configuredSpec.url.length > 0) {
+                record.source = {
+                  type: 'git',
+                  url: configuredSpec.url,
+                  path: record.source.path || configuredSpec.path
+                };
+                if (configuredSpec.ref) record.source.ref = configuredSpec.ref;
+                if (configuredSpec.subdir) record.source.subdir = configuredSpec.subdir;
+              } else if (configuredSpec.type === 'http' && typeof configuredSpec.url === 'string' && configuredSpec.url.length > 0) {
+                record.source = {
+                  type: 'http',
+                  url: configuredSpec.url,
+                  path: record.source.path || configuredSpec.path
+                };
+                if (configuredSpec.descriptorPath) record.source.descriptorPath = configuredSpec.descriptorPath;
+              }
+            }
             resolved.set(originalId, record);
 
             const childIds = Array.isArray(info?.childIds) ? info.childIds : [];
@@ -373,22 +417,28 @@ compose:
             warnings.push('Root descriptor is missing an id');
           }
 
-          return {
-            resolverResult: {
-              root,
-              warnings
-            },
-            warnings
-          };
+              return {
+                resolverResult: {
+                  root,
+                  warnings
+                },
+                debugSources: Array.from(sourceMap.entries()).map(([key, value]) => ({
+                  id: key,
+                  source: value
+                })),
+                warnings
+              };
         }
       input:
         projectPath: $.projectPath
         cacheRoot: $.cacheRoot
         normalizedConfig: $.normalizedConfig
+        config: $.config
         rootId: $.rootId
         rootDescriptor: $.rootDescriptor
         rootDescriptorText: $.rootDescriptorText
         warnings: $.warnings
+        registrationWarnings: $.registrationWarnings
       imports:
         pathJoin: lcod://axiom/path/join@1
         fsReadFile: lcod://axiom/fs/read-file@1
@@ -399,3 +449,4 @@ compose:
     out:
       resolverResult: resolverResult
       warnings: warnings
+      debugSources: debugSources

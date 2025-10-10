@@ -14,6 +14,13 @@ outputSchema = "schema/output.json"
 
 [deps]
 requires = [
+  "lcod://tooling/resolver/register_components@0.1.0",
+  "lcod://tooling/registry/source/load@0.1.0",
+  "lcod://tooling/registry/index@0.1.0",
+  "lcod://tooling/registry/select@0.1.0",
+  "lcod://tooling/resolver/warnings/merge@0.1.0",
+  "lcod://tooling/resolver/context/prepare@0.1.0",
+  "lcod://tooling/resolver/replace/apply@0.1.0",
   "lcod://tooling/script@1",
   "lcod://axiom/path/join@1",
   "lcod://axiom/fs/read-file@1",

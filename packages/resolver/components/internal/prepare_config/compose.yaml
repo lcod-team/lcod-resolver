@@ -29,12 +29,95 @@ compose:
             }
           }
 
+          const toolingConfig = baseConfig.tooling && typeof baseConfig.tooling === 'object'
+            ? baseConfig.tooling
+            : {};
+          const configSpecRoot = typeof toolingConfig.specRoot === 'string' && toolingConfig.specRoot.length > 0
+            ? toolingConfig.specRoot
+            : null;
+          const envSpecRoot = typeof process?.env?.SPEC_REPO_PATH === 'string' && process.env.SPEC_REPO_PATH.length > 0
+            ? process.env.SPEC_REPO_PATH
+            : null;
+          const specRoot = configSpecRoot ?? envSpecRoot;
+
+          const registryConfig = baseConfig.registry && typeof baseConfig.registry === 'object'
+            ? baseConfig.registry
+            : {};
+          const registrySources = [];
+          if (Array.isArray(registryConfig.sources)) {
+            for (const rawEntry of registryConfig.sources) {
+              if (!rawEntry || typeof rawEntry !== 'object') continue;
+              const registryId = typeof rawEntry.id === 'string' && rawEntry.id.length > 0
+                ? rawEntry.id
+                : null;
+              if (!registryId) {
+                warnings.push('registry source entry is missing an id');
+                continue;
+              }
+              const entryType = typeof rawEntry.type === 'string' && rawEntry.type.length > 0
+                ? rawEntry.type
+                : 'path';
+              const normalizedEntry = { id: registryId, type: entryType };
+              if (Number.isFinite(rawEntry.priority)) {
+                normalizedEntry.priority = Math.trunc(rawEntry.priority);
+              }
+              if (rawEntry.defaults && typeof rawEntry.defaults === 'object') {
+                normalizedEntry.defaults = rawEntry.defaults;
+              }
+
+              if (entryType === 'path') {
+                if (typeof rawEntry.path === 'string' && rawEntry.path.length > 0) {
+                  normalizedEntry.path = rawEntry.path;
+                } else {
+                  warnings.push(`registry source "${registryId}" (type=path) is missing "path"`);
+                  continue;
+                }
+                if (typeof rawEntry.packagesPath === 'string' && rawEntry.packagesPath.length > 0) {
+                  normalizedEntry.packagesPath = rawEntry.packagesPath;
+                }
+                if (typeof rawEntry.registryPath === 'string' && rawEntry.registryPath.length > 0) {
+                  normalizedEntry.registryPath = rawEntry.registryPath;
+                }
+              } else if (entryType === 'jsonl') {
+                if (typeof rawEntry.path === 'string' && rawEntry.path.length > 0) {
+                  normalizedEntry.path = rawEntry.path;
+                } else if (typeof rawEntry.jsonl === 'string' && rawEntry.jsonl.length > 0) {
+                  normalizedEntry.jsonl = rawEntry.jsonl;
+                } else {
+                  warnings.push(`registry source "${registryId}" (type=jsonl) is missing "path" or inline "jsonl" content`);
+                  continue;
+                }
+                if (typeof rawEntry.registryPath === 'string' && rawEntry.registryPath.length > 0) {
+                  normalizedEntry.registryPath = rawEntry.registryPath;
+                }
+              } else if (entryType === 'inline') {
+                const lines = Array.isArray(rawEntry.lines)
+                  ? rawEntry.lines.filter((entry) => entry && typeof entry === 'object')
+                  : [];
+                if (!lines.length) {
+                  warnings.push(`registry source "${registryId}" (type=inline) is missing "lines" entries`);
+                  continue;
+                }
+                normalizedEntry.lines = lines;
+                if (typeof rawEntry.jsonl === 'string' && rawEntry.jsonl.length > 0) {
+                  normalizedEntry.jsonl = rawEntry.jsonl;
+                }
+              } else {
+                warnings.push(`registry source "${registryId}" has unsupported type "${entryType}"`);
+                continue;
+              }
+              registrySources.push(normalizedEntry);
+            }
+          }
+
           return {
             normalizedConfig: {
               sources,
               replaceAlias,
               replaceSpec,
-              allowlist
+              allowlist,
+              registrySources,
+              specRoot
             },
             warnings
           };

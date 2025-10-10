@@ -8,6 +8,9 @@
       "path": "../../../lcod-spec/examples/demo/my_weather"
     }
   },
+  "tooling": {
+    "specRoot": "../../lcod-spec"
+  },
   "sources": {
     "lcod://examples/demo/my_weather@0.1.0": {
       "type": "path",

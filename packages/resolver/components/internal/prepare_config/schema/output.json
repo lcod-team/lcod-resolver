@@ -25,6 +25,18 @@
             { "type": "array", "items": { "type": "string" } }
           ],
           "description": "Trimmed allowlist entries or null when unused."
+        },
+        "registrySources": {
+          "type": "array",
+          "description": "Normalized registry sources resolving to packages.jsonl streams.",
+          "items": { "type": "object" }
+        },
+        "specRoot": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "minLength": 1 }
+          ],
+          "description": "Absolute path to the lcod-spec repository when provided."
         }
       }
     },

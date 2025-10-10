@@ -30,3 +30,12 @@ Next:
 
 ## M4 — Observabilité
 - [ ] Publier des événements de trace (résolution de dépendances, misses cache) alignés avec le contrat `lcod://tooling/log@1`.
+
+## M5 — Registry client
+
+Goal: consume the Git-first registry defined in `docs/registry.md` and expose user-facing workflows.
+
+- [ ] M5-01 Support chained `registry.json` files and local overrides when bootstrapping the resolver config.
+- [ ] M5-02 Fetch `versions.json` / `manifest.json`, download artefacts or individual files, verify hashes, and populate the cache.
+- [ ] M5-03 Implement semantic version resolution with `lcod-resolver update` to refresh locked dependencies.
+- [ ] M5-04 Add helper commands: `lcod-resolver mirror` (clone + rewrite URLs) and `lcod-resolver publish` (generate manifest, validate, open PR).

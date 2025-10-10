@@ -15,6 +15,10 @@
       "type": "object",
       "description": "Normalized configuration produced by prepare-config."
     },
+    "config": {
+      "type": "object",
+      "description": "Raw resolver configuration (pre-normalization)."
+    },
     "rootId": {
       "type": ["string", "null"],
       "description": "Explicit root id if provided."
@@ -31,6 +35,25 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "Existing warnings to propagate."
+    },
+    "registryPackages": {
+      "type": "object",
+      "description": "Packages indexed from the registry helper step."
+    },
+    "registryEntries": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "Flattened registry entries used for inspection."
+    },
+    "registryRegistries": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "Registry descriptors collected from JSONL streams."
+    },
+    "registryWarnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Warnings produced while loading registry metadata."
     }
   },
   "additionalProperties": true

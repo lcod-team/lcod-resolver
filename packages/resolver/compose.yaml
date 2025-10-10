@@ -43,6 +43,7 @@ compose:
       projectPath: $.projectPath
       cacheRoot: $.cacheRoot
       normalizedConfig: $.normalizedConfig
+      config: $.config
       rootId: $.descriptor.id
       rootDescriptor: $.descriptor
       rootDescriptorText: $.descriptorText
