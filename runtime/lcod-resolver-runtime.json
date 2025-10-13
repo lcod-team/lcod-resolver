@@ -1,0 +1,99 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2025-10-13T05:54:11.943Z",
+  "commit": "520608a139c69f721a34d35cd93364f35393153b",
+  "ref": "main",
+  "package": {
+    "id": "lcod://tooling/resolver@0.1.0",
+    "version": "0.1.0",
+    "composePath": "resolver/packages/resolver/compose.yaml",
+    "lockfilePath": "resolver/packages/resolver/lcp.lock"
+  },
+  "workspace": {
+    "manifest": "resolver/workspace.lcp.toml",
+    "components": [
+      {
+        "id": "internal/load-descriptor",
+        "path": "resolver/packages/resolver/components/internal/load_descriptor"
+      },
+      {
+        "id": "internal/load-config",
+        "path": "resolver/packages/resolver/components/internal/load_config"
+      },
+      {
+        "id": "internal/lock-path",
+        "path": "resolver/packages/resolver/components/internal/lock_path"
+      },
+      {
+        "id": "internal/prepare-config",
+        "path": "resolver/packages/resolver/components/internal/prepare_config"
+      },
+      {
+        "id": "internal/prepare-cache",
+        "path": "resolver/packages/resolver/components/internal/prepare_cache"
+      },
+      {
+        "id": "internal/resolve-dependencies",
+        "path": "resolver/packages/resolver/components/internal/resolve_dependencies"
+      },
+      {
+        "id": "internal/summarize-result",
+        "path": "resolver/packages/resolver/components/internal/summarize_result"
+      },
+      {
+        "id": "internal/build-lock",
+        "path": "resolver/packages/resolver/components/internal/build_lock"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "lcod://tooling/resolver/internal/build-lock@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/build_lock/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/build_lock/lcp.toml"
+    },
+    {
+      "id": "lcod://tooling/resolver/internal/load-config@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/load_config/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/load_config/lcp.toml"
+    },
+    {
+      "id": "lcod://tooling/resolver/internal/load-descriptor@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/load_descriptor/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/load_descriptor/lcp.toml"
+    },
+    {
+      "id": "lcod://tooling/resolver/internal/lock-path@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/lock_path/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/lock_path/lcp.toml"
+    },
+    {
+      "id": "lcod://tooling/resolver/internal/prepare-cache@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/prepare_cache/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/prepare_cache/lcp.toml"
+    },
+    {
+      "id": "lcod://tooling/resolver/internal/prepare-config@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/prepare_config/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/prepare_config/lcp.toml"
+    },
+    {
+      "id": "lcod://tooling/resolver/internal/resolve-dependencies@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/resolve_dependencies/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/resolve_dependencies/lcp.toml"
+    },
+    {
+      "id": "lcod://tooling/resolver/internal/summarize-result@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/summarize_result/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/summarize_result/lcp.toml"
+    }
+  ]
+}

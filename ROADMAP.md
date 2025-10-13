@@ -17,6 +17,7 @@
 - [ ] API/CLI Node stable (packages + documentation).
 - [ ] Packaging CLI (`assemble`, `ship`, `build`) aligné sur la spec distribution.
 - [x] Normalisation compose via le composant partagé (`tooling/compose/normalize@1`).
+- [x] Publish a snapshot `lcod-resolver-runtime.json` listing the composes/versions embedded in the shared runtime bundle (consumed by kernels).
 
 ## M3 — Workspace & registry scopes
 
