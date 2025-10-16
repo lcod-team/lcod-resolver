@@ -16,6 +16,7 @@
 - [ ] Export `.lcpkg`.
 - [ ] API/CLI Node stable (packages + documentation).
 - [ ] Packaging CLI (`assemble`, `ship`, `build`) aligné sur la spec distribution.
+- [ ] Fournir une commande/compose prête pour `lcod-run` (sources par défaut, cache, lock) — voir `docs/lcod-run-cli.md` dans `lcod-spec`.
 - [x] Normalisation compose via le composant partagé (`tooling/compose/normalize@1`).
 - [x] Publish a snapshot `lcod-resolver-runtime.json` listing the composes/versions embedded in the shared runtime bundle (consumed by kernels).
 
