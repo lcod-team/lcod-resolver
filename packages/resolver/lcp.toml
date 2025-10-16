@@ -36,6 +36,10 @@ id = "internal/prepare-cache"
 path = "components/internal/prepare_cache"
 
 [[workspace.components]]
+id = "internal/load-sources"
+path = "components/internal/load_sources"
+
+[[workspace.components]]
 id = "internal/resolve-dependencies"
 path = "components/internal/resolve_dependencies"
 
