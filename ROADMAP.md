@@ -41,3 +41,8 @@ Goal: consume the Git-first registry defined in `docs/registry.md` and expose us
 - [ ] M5-02 Fetch `versions.json` / `manifest.json`, download artefacts or individual files, verify hashes, and populate the cache.
 - [ ] M5-03 Implement semantic version resolution with `lcod-resolver update` to refresh locked dependencies.
 - [ ] M5-04 Add helper commands: `lcod-resolver mirror` (clone + rewrite URLs) and `lcod-resolver publish` (generate manifest, validate, open PR).
+
+## M6 — MCP-assisted authoring bridge
+- [ ] M6-01 Expose resolver operations (search, reserve IDs, lock preview) through the MCP backend.
+- [ ] M6-02 Provide compose helpers so MCP sessions can materialise components and run validation before serialization.
+- [ ] M6-03 Record provenance metadata (author, intent, review status) suitable for MCP-driven publishing workflows.
