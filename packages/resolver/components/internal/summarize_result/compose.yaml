@@ -1,23 +1,116 @@
 compose:
-  - call: lcod://tooling/script@1
+  - call: lcod://impl/set@1
     in:
-      source: |
-        async ({ state }) => {
-          const root = state.resolverResult && typeof state.resolverResult === 'object'
-            ? state.resolverResult.root || {}
-            : {};
-          const warnings = state.resolverResult && Array.isArray(state.resolverResult.warnings)
-            ? state.resolverResult.warnings
-            : (Array.isArray(state.warnings) ? state.warnings : []);
-          return {
-            dependencyGraph: Array.isArray(root.dependencies) ? root.dependencies : [],
-            rootIntegrity: root.integrity || null,
-            warnings
-          };
-        }
-      input:
-        resolverResult: $.resolverResult
-        warnings: $.warnings
+      resolverRoot: $.resolverResult.root
+      incomingWarnings: $.warnings
+    out:
+      resolverRoot: resolverRoot
+      incomingWarnings: incomingWarnings
+
+  - call: lcod://tooling/value/is_array@0.1.0
+    in:
+      value: $.resolverResult.warnings
+    out:
+      resultHasWarnings: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.resultHasWarnings
+    children:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            normalizedWarnings: $.resolverResult.warnings
+          out:
+            normalizedWarnings: normalizedWarnings
+      else:
+        - call: lcod://tooling/value/is_array@0.1.0
+          in:
+            value: $.incomingWarnings
+          out:
+            incomingIsArray: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.incomingIsArray
+          children:
+            then:
+              - call: lcod://impl/set@1
+                in:
+                  normalizedWarnings: $.incomingWarnings
+                out:
+                  normalizedWarnings: normalizedWarnings
+            else:
+              - call: lcod://impl/set@1
+                in:
+                  normalizedWarnings: []
+                out:
+                  normalizedWarnings: normalizedWarnings
+          out:
+            normalizedWarnings: normalizedWarnings
+    out:
+      normalizedWarnings: normalizedWarnings
+
+  - call: lcod://tooling/value/is_array@0.1.0
+    in:
+      value: $.resolverRoot.dependencies
+    out:
+      hasDependencies: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasDependencies
+    children:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            dependencyGraph: $.resolverRoot.dependencies
+          out:
+            dependencyGraph: dependencyGraph
+      else:
+        - call: lcod://impl/set@1
+          in:
+            dependencyGraph: []
+          out:
+            dependencyGraph: dependencyGraph
+    out:
+      dependencyGraph: dependencyGraph
+
+  - call: lcod://impl/set@1
+    in:
+      collectedWarnings: $.normalizedWarnings
+    out:
+      collectedWarnings: collectedWarnings
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.resolverRoot.integrity
+    out:
+      hasIntegrity: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasIntegrity
+    children:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            rootIntegrity: $.resolverRoot.integrity
+          out:
+            rootIntegrity: rootIntegrity
+      else:
+        - call: lcod://impl/set@1
+          in:
+            rootIntegrity: null
+          out:
+            rootIntegrity: rootIntegrity
+    out:
+      rootIntegrity: rootIntegrity
+
+  - call: lcod://impl/set@1
+    in:
+      dependencyGraph: $.dependencyGraph
+      rootIntegrity: $.rootIntegrity
+      warnings: $.collectedWarnings
     out:
       dependencyGraph: dependencyGraph
       rootIntegrity: rootIntegrity

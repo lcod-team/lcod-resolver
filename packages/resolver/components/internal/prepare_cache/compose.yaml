@@ -1,21 +1,63 @@
 compose:
-  - call: lcod://tooling/script@1
+  - call: lcod://tooling/resolver/cache-dir@1
     in:
-      source: |
-        async ({ state, imports }) => {
-          const info = await imports.cacheDir({ projectPath: state.projectPath });
-          const base = info?.path && typeof info.path === 'string' && info.path.length > 0
-            ? info.path
-            : state.projectPath;
-          const normalised = await imports.pathJoin({ base, segment: '.' });
-          return {
-            cacheRoot: normalised?.path || base
-          };
-        }
-      input:
-        projectPath: $.projectPath
-      imports:
-        cacheDir: lcod://tooling/resolver/cache-dir@1
-        pathJoin: lcod://axiom/path/join@1
+      projectPath: $.projectPath
+    out:
+      cacheInfo: $
+
+  - call: lcod://impl/set@1
+    in:
+      candidateRoot: $.projectPath
+    out:
+      candidateRoot: candidateRoot
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.cacheInfo.path
+    out:
+      hasCachePath: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasCachePath
+    children:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            candidateRoot: $.cacheInfo.path
+          out:
+            candidateRoot: candidateRoot
+    out:
+      candidateRoot: candidateRoot
+
+  - call: lcod://axiom/path/join@1
+    in:
+      base: $.candidateRoot
+      segment: "."
+    out:
+      normalizedJoin: $
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.normalizedJoin.path
+    out:
+      hasNormalized: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasNormalized
+    children:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            cacheRoot: $.normalizedJoin.path
+          out:
+            cacheRoot: cacheRoot
+      else:
+        - call: lcod://impl/set@1
+          in:
+            cacheRoot: $.candidateRoot
+          out:
+            cacheRoot: cacheRoot
     out:
       cacheRoot: cacheRoot

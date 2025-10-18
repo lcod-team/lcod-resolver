@@ -16,7 +16,9 @@ outputSchema = "schema/output.json"
 requires = [
   "lcod://tooling/resolver/cache-dir@1",
   "lcod://axiom/path/join@1",
-  "lcod://tooling/script@1"
+  "lcod://impl/set@1",
+  "lcod://tooling/value/is_string_nonempty@0.1.0",
+  "lcod://flow/if@1"
 ]
 
 [docs]

@@ -14,7 +14,10 @@ outputSchema = "schema/output.json"
 
 [deps]
 requires = [
-  "lcod://tooling/script@1"
+  "lcod://impl/set@1",
+  "lcod://flow/if@1",
+  "lcod://tooling/value/is_array@0.1.0",
+  "lcod://tooling/value/is_string_nonempty@0.1.0"
 ]
 
 [docs]
