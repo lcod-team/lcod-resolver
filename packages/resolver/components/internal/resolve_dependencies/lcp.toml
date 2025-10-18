@@ -21,6 +21,8 @@ requires = [
   "lcod://tooling/resolver/warnings/merge@0.1.0",
   "lcod://tooling/resolver/context/prepare@0.1.0",
   "lcod://tooling/resolver/replace/apply@0.1.0",
+  "lcod://tooling/array/filter_objects@0.1.0",
+  "lcod://tooling/array/concat@0.1.0",
   "lcod://tooling/script@1",
   "lcod://axiom/path/join@1",
   "lcod://axiom/fs/read-file@1",

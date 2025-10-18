@@ -15,19 +15,24 @@ compose:
       pointerWarnings: pointerWarnings
       sourcesPath: sourcesPath
 
-  - call: lcod://tooling/script@1
+  - call: lcod://tooling/array/filter_objects@0.1.0
     in:
-      source: |
-        async ({ state }) => {
-          const primary = Array.isArray(state.primary) ? state.primary.filter((entry) => entry && typeof entry === 'object') : [];
-          const extra = Array.isArray(state.extra) ? state.extra.filter((entry) => entry && typeof entry === 'object') : [];
-          return { sources: [...primary, ...extra] };
-        }
-      input:
-        primary: $.normalizedConfig.registrySources
-        extra: $.pointerRegistrySources
+      items: $.normalizedConfig.registrySources
     out:
-      combinedRegistrySources: sources
+      primaryRegistrySources: items
+
+  - call: lcod://tooling/array/filter_objects@0.1.0
+    in:
+      items: $.pointerRegistrySources
+    out:
+      pointerRegistrySourcesFiltered: items
+
+  - call: lcod://tooling/array/concat@0.1.0
+    in:
+      left: $.primaryRegistrySources
+      right: $.pointerRegistrySourcesFiltered
+    out:
+      combinedRegistrySources: items
 
   - call: lcod://tooling/registry/source/load@0.1.0
     in:
