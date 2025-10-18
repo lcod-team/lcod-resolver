@@ -16,9 +16,13 @@ outputSchema = "schema/output.json"
 requires = [
   "lcod://flow/if@1",
   "lcod://axiom/path/join@1",
-  "lcod://axiom/fs/read-file@1",
-  "lcod://axiom/json/parse@1",
-  "lcod://tooling/script@1",
+  "lcod://tooling/fs/read_optional@0.1.0",
+  "lcod://tooling/json/decode_object@0.1.0",
+  "lcod://tooling/value/default_object@0.1.0",
+  "lcod://tooling/value/default_array@0.1.0",
+  "lcod://tooling/value/is_string_nonempty@0.1.0",
+  "lcod://tooling/array/append@0.1.0",
+  "lcod://core/object/merge@0.1.0",
   "lcod://impl/set@1"
 ]
 
