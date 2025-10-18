@@ -61,18 +61,36 @@ compose:
     out:
       lockText: text
 
-  - call: lcod://tooling/script@1
+  - call: lcod://tooling/value/is_array@0.1.0
     in:
-      source: |
-        async ({ state }) => ({
-          lockDocument: state.lockDocument,
-          lockText: state.lockText,
-          warnings: Array.isArray(state.warnings) ? state.warnings : []
-        })
-      input:
-        lockDocument: $.lockDocument
-        lockText: $.lockText
-        warnings: $.warnings
+      value: $.warnings
+    out:
+      hasWarningsArray: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasWarningsArray
+    children:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            normalizedWarnings: $.warnings
+          out:
+            normalizedWarnings: normalizedWarnings
+      else:
+        - call: lcod://impl/set@1
+          in:
+            normalizedWarnings: []
+          out:
+            normalizedWarnings: normalizedWarnings
+    out:
+      normalizedWarnings: normalizedWarnings
+
+  - call: lcod://impl/set@1
+    in:
+      lockDocument: $.lockDocument
+      lockText: $.lockText
+      warnings: $.normalizedWarnings
     out:
       lockDocument: lockDocument
       lockText: lockText

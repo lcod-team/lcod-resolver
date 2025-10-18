@@ -16,7 +16,9 @@ outputSchema = "schema/output.json"
 requires = [
   "lcod://tooling/script@1",
   "lcod://axiom/toml/stringify@1",
-  "lcod://impl/set@1"
+  "lcod://impl/set@1",
+  "lcod://flow/if@1",
+  "lcod://tooling/value/is_array@0.1.0"
 ]
 
 [docs]
