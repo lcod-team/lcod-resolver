@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2025-10-13T05:54:11.943Z",
-  "commit": "520608a139c69f721a34d35cd93364f35393153b",
+  "generatedAt": "2025-10-20T15:35:32.688Z",
+  "commit": "8b430450b7e2fe4bdf69aac656020a8a266c9943",
   "ref": "main",
   "package": {
     "id": "lcod://tooling/resolver@0.1.0",
@@ -31,6 +31,10 @@
       {
         "id": "internal/prepare-cache",
         "path": "resolver/packages/resolver/components/internal/prepare_cache"
+      },
+      {
+        "id": "internal/load-sources",
+        "path": "resolver/packages/resolver/components/internal/load_sources"
       },
       {
         "id": "internal/resolve-dependencies",
@@ -64,6 +68,12 @@
       "version": "0.1.0",
       "composePath": "resolver/packages/resolver/components/internal/load_descriptor/compose.yaml",
       "manifestPath": "resolver/packages/resolver/components/internal/load_descriptor/lcp.toml"
+    },
+    {
+      "id": "lcod://tooling/resolver/internal/load-sources@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/load_sources/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/load_sources/lcp.toml"
     },
     {
       "id": "lcod://tooling/resolver/internal/lock-path@0.1.0",
