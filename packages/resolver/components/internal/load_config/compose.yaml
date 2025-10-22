@@ -2,7 +2,7 @@ compose:
   - call: lcod://flow/if@1
     in:
       cond: $.configPath
-    children:
+    slots:
       then:
         - call: lcod://impl/set@1
           in:
@@ -80,7 +80,7 @@ compose:
   - call: lcod://flow/if@1
     in:
       cond: $.readWarning
-    children:
+    slots:
       then:
         - call: lcod://tooling/value/default_array@0.1.0
           in:

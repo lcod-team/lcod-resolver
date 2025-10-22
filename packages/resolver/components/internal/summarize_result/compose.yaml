@@ -16,7 +16,7 @@ compose:
   - call: lcod://flow/if@1
     in:
       cond: $.resultHasWarnings
-    children:
+    slots:
       then:
         - call: lcod://impl/set@1
           in:
@@ -32,7 +32,7 @@ compose:
         - call: lcod://flow/if@1
           in:
             cond: $.incomingIsArray
-          children:
+          slots:
             then:
               - call: lcod://impl/set@1
                 in:
@@ -59,7 +59,7 @@ compose:
   - call: lcod://flow/if@1
     in:
       cond: $.hasDependencies
-    children:
+    slots:
       then:
         - call: lcod://impl/set@1
           in:
@@ -90,7 +90,7 @@ compose:
   - call: lcod://flow/if@1
     in:
       cond: $.hasIntegrity
-    children:
+    slots:
       then:
         - call: lcod://impl/set@1
           in:

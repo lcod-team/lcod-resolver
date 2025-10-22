@@ -20,7 +20,7 @@ compose:
   - call: lcod://flow/if@1
     in:
       cond: $.hasCachePath
-    children:
+    slots:
       then:
         - call: lcod://impl/set@1
           in:
@@ -46,7 +46,7 @@ compose:
   - call: lcod://flow/if@1
     in:
       cond: $.hasNormalized
-    children:
+    slots:
       then:
         - call: lcod://impl/set@1
           in:
