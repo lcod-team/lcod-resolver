@@ -1,14 +1,95 @@
-schemaVersion = "1.0"
+schemaVersion = "2.0"
 id = "lcod://tooling/resolver@0.1.0"
-name = "resolver"
-namespace = "tooling"
 version = "0.1.0"
 kind = "workflow"
-summary = "Composite resolver that produces lcp.lock from lcp.toml using filesystem/network axioms."
+summary = "Composite resolver that produces `lcp.lock` from `lcp.toml` using filesystem/network axioms."
+
+[deps]
+requires = [
+  "lcod://axiom/fs/write-file@1",
+  "lcod://flow/foreach@1",
+  "lcod://contract/tooling/resolve-dependency@1",
+  "lcod://impl/set@1",
+  "lcod://tooling/resolver/cache-dir@1",
+  "lcod://tooling/resolver/internal/load-descriptor@0.1.0",
+  "lcod://tooling/resolver/internal/load-config@0.1.0",
+  "lcod://tooling/resolver/internal/lock-path@0.1.0",
+  "lcod://tooling/resolver/internal/prepare-config@0.1.0",
+  "lcod://tooling/resolver/internal/prepare-cache@0.1.0",
+  "lcod://tooling/resolver/internal/load-sources@0.1.0",
+  "lcod://tooling/resolver/internal/resolve-dependencies@0.1.0",
+  "lcod://tooling/resolver/internal/summarize-result@0.1.0",
+  "lcod://tooling/resolver/internal/build-lock@0.1.0"
+]
+
+[inputs.projectPath]
+summary = "Directory containing `lcp.toml`."
+required = true
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "description": "Absolute or relative path to directory containing lcp.toml"
+}"""
+
+[inputs.configPath]
+summary = "Optional resolver configuration (`resolve.config.json`)."
+required = false
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "description": "Optional resolver configuration file"
+}"""
+
+[inputs.outputPath]
+summary = "Optional explicit destination for `lcp.lock`."
+required = false
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "description": "Optional explicit output file for lcp.lock"
+}"""
+
+[outputs.lockPath]
+summary = "Path to the generated lockfile."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "description": "Path to generated lcp.lock"
+}"""
+
+[outputs.components]
+summary = "Resolved components with minimal metadata."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "resolved"],
+    "properties": {
+      "id": { "type": "string" },
+      "resolved": { "type": "string" },
+      "source": { "type": "object" }
+    }
+  }
+}"""
+
+[outputs.warnings]
+summary = "Warnings collected during resolution."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": { "type": "string" }
+}"""
 
 [tool]
 name = "resolve"
-description = "Resolve dependencies and produce an lcp.lock"
+description = "Resolve dependencies and produce an `lcp.lock`."
 inputSchema = "schema/resolve.in.json"
 outputSchema = "schema/resolve.out.json"
 
@@ -50,23 +131,3 @@ path = "components/internal/summarize_result"
 [[workspace.components]]
 id = "internal/build-lock"
 path = "components/internal/build_lock"
-
-[deps]
-requires = [
-  "lcod://axiom/fs/write-file@1",
-  "lcod://flow/foreach@1",
-  "lcod://contract/tooling/resolve-dependency@1",
-  "lcod://impl/set@1",
-  "lcod://tooling/resolver/cache-dir@1",
-  "internal/load-descriptor",
-  "internal/load-config",
-  "internal/lock-path",
-  "internal/prepare-config",
-  "internal/prepare-cache",
-  "internal/resolve-dependencies",
-  "internal/summarize-result",
-  "internal/build-lock"
-]
-
-[docs]
-readme = "README.md"

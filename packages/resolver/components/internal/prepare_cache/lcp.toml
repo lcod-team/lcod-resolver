@@ -1,25 +1,40 @@
-schemaVersion = "1.0"
+schemaVersion = "2.0"
 id = "lcod://tooling/resolver/internal/prepare-cache@0.1.0"
-name = "prepare-cache"
-namespace = "tooling/resolver/internal"
 version = "0.1.0"
 kind = "function"
-summary = "Compute the cache root directory for the resolver execution."
-
-[tool]
-name = "prepare_cache"
-description = "Select cache root based on project path and cache-dir axiom."
-inputSchema = "schema/input.json"
-outputSchema = "schema/output.json"
+summary = "Determine the cache directory used for resolver downloads."
 
 [deps]
 requires = [
   "lcod://tooling/resolver/cache-dir@1",
-  "lcod://axiom/path/join@1",
-  "lcod://impl/set@1",
   "lcod://tooling/value/is_string_nonempty@0.1.0",
-  "lcod://flow/if@1"
+  "lcod://impl/set@1",
+  "lcod://flow/if@1",
+  "lcod://axiom/path/join@1"
 ]
 
-[docs]
-readme = "README.md"
+[inputs.projectPath]
+summary = "Base project directory."
+required = true
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "minLength": 1,
+  "description": "Project root directory."
+}"""
+
+[outputs.cacheRoot]
+summary = "Resolved cache directory used by the resolver."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "description": "Resolved cache directory."
+}"""
+
+[tool]
+name = "prepare_cache"
+description = "Resolve the cache directory for resolver downloads."
+inputSchema = "schema/input.json"
+outputSchema = "schema/output.json"

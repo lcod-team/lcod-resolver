@@ -1,16 +1,8 @@
-schemaVersion = "1.0"
+schemaVersion = "2.0"
 id = "lcod://tooling/resolver/internal/load-config@0.1.0"
-name = "load-config"
-namespace = "tooling/resolver/internal"
 version = "0.1.0"
 kind = "function"
-summary = "Load and normalise resolver configuration from JSON, falling back to empty sources."
-
-[tool]
-name = "load_config"
-description = "Resolve the configuration JSON used by the resolver pipeline."
-inputSchema = "schema/input.json"
-outputSchema = "schema/output.json"
+summary = "Load `resolve.config.json`, merge fallbacks, and expose a normalised resolver configuration."
 
 [deps]
 requires = [
@@ -20,11 +12,63 @@ requires = [
   "lcod://tooling/json/decode_object@0.1.0",
   "lcod://tooling/value/default_object@0.1.0",
   "lcod://tooling/value/default_array@0.1.0",
-  "lcod://tooling/value/is_string_nonempty@0.1.0",
   "lcod://tooling/array/append@0.1.0",
   "lcod://core/object/merge@0.1.0",
   "lcod://impl/set@1"
 ]
 
-[docs]
-readme = "README.md"
+[inputs.projectPath]
+summary = "Root directory of the project being resolved."
+required = true
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "minLength": 1,
+  "description": "Root path of the project being resolved."
+}"""
+
+[inputs.configPath]
+summary = "Explicit path to the resolver configuration file."
+required = false
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "minLength": 1,
+  "description": "Optional explicit path to the resolver configuration."
+}"""
+
+[outputs.configPath]
+summary = "Resolved path of the configuration that was loaded."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "description": "Resolved path that was loaded."
+}"""
+
+[outputs.config]
+summary = "Normalised resolver configuration."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "description": "Normalised configuration object."
+}"""
+
+[outputs.warnings]
+summary = "Warnings emitted while loading the configuration."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": { "type": "string" },
+  "description": "Warnings produced while loading the configuration."
+}"""
+
+[tool]
+name = "load_config"
+description = "Resolve configuration paths, parse JSON, and surface normalised resolver options."
+inputSchema = "schema/input.json"
+outputSchema = "schema/output.json"
