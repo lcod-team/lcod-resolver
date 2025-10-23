@@ -93,41 +93,8 @@ description = "Resolve dependencies and produce an `lcp.lock`."
 inputSchema = "schema/resolve.in.json"
 outputSchema = "schema/resolve.out.json"
 
+[workspace]
+componentsDir = "components"
+
 [workspace.scopeAliases]
 internal = "internal"
-
-[[workspace.components]]
-id = "internal/load-descriptor"
-path = "components/internal/load_descriptor"
-
-[[workspace.components]]
-id = "internal/load-config"
-path = "components/internal/load_config"
-
-[[workspace.components]]
-id = "internal/lock-path"
-path = "components/internal/lock_path"
-
-[[workspace.components]]
-id = "internal/prepare-config"
-path = "components/internal/prepare_config"
-
-[[workspace.components]]
-id = "internal/prepare-cache"
-path = "components/internal/prepare_cache"
-
-[[workspace.components]]
-id = "internal/load-sources"
-path = "components/internal/load_sources"
-
-[[workspace.components]]
-id = "internal/resolve-dependencies"
-path = "components/internal/resolve_dependencies"
-
-[[workspace.components]]
-id = "internal/summarize-result"
-path = "components/internal/summarize_result"
-
-[[workspace.components]]
-id = "internal/build-lock"
-path = "components/internal/build_lock"
