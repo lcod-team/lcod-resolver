@@ -47,6 +47,10 @@ compose:
           const envCatalogue = resolveString(process.env.LCOD_REGISTRY_CATALOGUE);
           if (envCatalogue) catalogueCandidates.push(envCatalogue);
           const envRegistryRoot = resolveString(process.env.LCOD_REGISTRY_PATH);
+          if (envRegistryRoot) catalogueCandidates.push(path.join(envRegistryRoot, 'catalogues.jsonl'));
+          catalogueCandidates.push(path.join(projectRoot, 'catalogues.jsonl'));
+          catalogueCandidates.push(path.join(projectRoot, '..', 'lcod-registry', 'catalogues.jsonl'));
+          catalogueCandidates.push(path.join(projectRoot, '..', '..', 'lcod-registry', 'catalogues.jsonl'));
           if (envRegistryRoot) catalogueCandidates.push(path.join(envRegistryRoot, 'catalogues.json'));
           catalogueCandidates.push(path.join(projectRoot, 'catalogues.json'));
           catalogueCandidates.push(path.join(projectRoot, '..', 'lcod-registry', 'catalogues.json'));
@@ -78,16 +82,31 @@ compose:
           let componentsRegistryPath = null;
           for (const candidate of componentsCandidates) {
             if (!candidate) continue;
-            const registryPath = path.join(candidate, 'registry', 'components.std.json');
+            const jsonlPath = path.join(candidate, 'registry', 'components.std.jsonl');
+            const jsonPath = path.join(candidate, 'registry', 'components.std.json');
+            let registryPath = null;
             try {
-              const stat = await fs.stat(registryPath);
+              const stat = await fs.stat(jsonlPath);
               if (stat.isFile()) {
-                componentsRoot = path.resolve(cwd, candidate);
-                componentsRegistryPath = path.resolve(cwd, registryPath);
-                break;
+                registryPath = jsonlPath;
               }
             } catch (_err) {
               // ignore
+            }
+            if (!registryPath) {
+              try {
+                const stat = await fs.stat(jsonPath);
+                if (stat.isFile()) {
+                  registryPath = jsonPath;
+                }
+              } catch (_err) {
+                // ignore
+              }
+            }
+            if (registryPath) {
+              componentsRoot = path.resolve(cwd, candidate);
+              componentsRegistryPath = path.resolve(cwd, registryPath);
+              break;
             }
           }
 
@@ -124,30 +143,71 @@ compose:
           }
 
           try {
-            const text = await fs.readFile(state.componentsRegistryPath, 'utf-8');
-            const entries = JSON.parse(text);
-            if (Array.isArray(entries)) {
-              for (const entry of entries) {
-                if (!entry || typeof entry.id !== 'string') continue;
-                if (entry.id === state.componentId) {
-                  const composePath = typeof entry.composePath === 'string'
-                    ? path.resolve(state.componentsRoot, entry.composePath)
-                    : null;
-                  if (composePath) {
-                    return {
-                      found: true,
-                      result: {
-                        id: entry.id,
-                        composePath,
-                        repoRoot: state.componentsRoot
-                      },
-                      warnings
-                    };
+            const registryPath = state.componentsRegistryPath;
+            const extension = path.extname(registryPath || '').toLowerCase();
+            const text = await fs.readFile(registryPath, 'utf-8');
+
+            let entries = [];
+            if (extension === '.jsonl') {
+              const lines = text
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter((line) => line.length > 0);
+              if (lines.length === 0) {
+                warnings.push(`Local registry ${registryPath} is empty`);
+              } else {
+                let startIndex = 0;
+                try {
+                  JSON.parse(lines[0]);
+                  startIndex = 1;
+                } catch (_err) {
+                  // header missing or invalid, treat all lines as entries
+                  startIndex = 0;
+                }
+                for (let i = startIndex; i < lines.length; i += 1) {
+                  const raw = lines[i];
+                  try {
+                    const parsed = JSON.parse(raw);
+                    entries.push(parsed);
+                  } catch (err) {
+                    warnings.push(`Failed to parse JSONL entry at ${registryPath}:${i + 1}: ${err.message || err}`);
                   }
                 }
               }
+            } else {
+              const parsed = JSON.parse(text);
+              if (Array.isArray(parsed)) {
+                entries = parsed;
+              } else {
+                warnings.push(`Local registry ${registryPath} is not an array`);
+              }
             }
-            warnings.push(`Component ${state.componentId} not found in local registry ${state.componentsRegistryPath}`);
+
+            for (const entry of entries) {
+              if (!entry || typeof entry.id !== 'string') continue;
+              if (entry.id !== state.componentId) continue;
+              const composeRel = typeof entry.compose === 'string'
+                ? entry.compose
+                : typeof entry.composePath === 'string'
+                  ? entry.composePath
+                  : null;
+              if (!composeRel) {
+                warnings.push(`Entry ${entry.id} missing compose path in ${registryPath}`);
+                continue;
+              }
+              const composePath = path.resolve(state.componentsRoot, composeRel);
+              return {
+                found: true,
+                result: {
+                  id: entry.id,
+                  composePath,
+                  repoRoot: state.componentsRoot
+                },
+                warnings
+              };
+            }
+
+            warnings.push(`Component ${state.componentId} not found in local registry ${registryPath}`);
           } catch (err) {
             warnings.push(`Failed to read local registry at ${state.componentsRegistryPath}: ${err.message || err}`);
           }
@@ -196,17 +256,15 @@ compose:
                 if (state.cataloguePath) {
                   sources.push({
                     id: 'lcod-local',
-                    priority: 40,
                     entrypoint: { type: 'file', path: state.cataloguePath }
                   });
                 }
 
                 sources.push({
                   id: 'lcod-official',
-                  priority: 50,
                   entrypoint: {
                     type: 'https',
-                    url: 'https://raw.githubusercontent.com/lcod-team/lcod-registry/main/catalogues.json'
+                    url: 'https://raw.githubusercontent.com/lcod-team/lcod-registry/main/catalogues.jsonl'
                   }
                 });
 
