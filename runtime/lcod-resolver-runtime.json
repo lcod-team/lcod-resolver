@@ -104,6 +104,12 @@
       "version": "0.1.0",
       "composePath": "resolver/packages/resolver/components/internal/summarize_result/compose.yaml",
       "manifestPath": "resolver/packages/resolver/components/internal/summarize_result/lcp.toml"
+    },
+    {
+      "id": "lcod://resolver/locate_component@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/locate_component/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/locate_component/lcp.toml"
     }
   ]
 }
