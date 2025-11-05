@@ -125,16 +125,8 @@ compose:
               const absolute = path.resolve(cwd, candidate);
               const stat = await fs.stat(absolute);
               if (!stat.isDirectory()) continue;
-              const toolingDir = path.join(absolute, 'tooling');
-              try {
-                const toolingStat = await fs.stat(toolingDir);
-                if (toolingStat.isDirectory()) {
-                  specRoot = absolute;
-                  break;
-                }
-              } catch (_err) {
-                // ignore missing tooling directory
-              }
+              specRoot = absolute;
+              break;
             } catch (_err) {
               // ignore missing candidate
             }
