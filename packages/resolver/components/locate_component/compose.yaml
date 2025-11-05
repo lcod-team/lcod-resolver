@@ -110,6 +110,57 @@ compose:
             }
           }
 
+          const specCandidates = [];
+          const envSpec = resolveString(process.env.SPEC_REPO_PATH);
+          if (envSpec) specCandidates.push(envSpec);
+          const envHome = resolveString(process.env.LCOD_HOME);
+          if (envHome) specCandidates.push(envHome);
+          specCandidates.push(path.join(projectRoot, '..', 'lcod-spec'));
+          specCandidates.push(path.join(projectRoot, '..', '..', 'lcod-spec'));
+
+          let specRoot = null;
+          for (const candidate of specCandidates) {
+            if (!candidate) continue;
+            try {
+              const absolute = path.resolve(cwd, candidate);
+              const stat = await fs.stat(absolute);
+              if (!stat.isDirectory()) continue;
+              specRoot = absolute;
+              break;
+            } catch (_err) {
+              // ignore missing candidate
+            }
+          }
+
+          const resolverCandidates = [];
+          const envResolver = resolveString(process.env.LCOD_RESOLVER_PATH);
+          if (envResolver) resolverCandidates.push(envResolver);
+          if (specRoot) resolverCandidates.push(path.join(specRoot, 'resolver'));
+          resolverCandidates.push(path.join(projectRoot, '..', 'lcod-resolver'));
+          resolverCandidates.push(path.join(projectRoot, '..', '..', 'lcod-resolver'));
+
+          let resolverRoot = null;
+          for (const candidate of resolverCandidates) {
+            if (!candidate) continue;
+            try {
+              const absolute = path.resolve(cwd, candidate);
+              const stat = await fs.stat(absolute);
+              if (!stat.isDirectory()) continue;
+              const componentsDir = path.join(absolute, 'packages', 'resolver', 'components');
+              try {
+                const compStat = await fs.stat(componentsDir);
+                if (compStat.isDirectory()) {
+                  resolverRoot = absolute;
+                  break;
+                }
+              } catch (_err) {
+                // ignore missing components dir
+              }
+            } catch (_err) {
+              // ignore candidate
+            }
+          }
+
           return {
             cwd,
             projectRoot,
@@ -118,7 +169,9 @@ compose:
             userCacheDir: path.resolve(homeDir, userCacheInput),
             cataloguePath,
             componentsRoot,
-            componentsRegistryPath
+            componentsRegistryPath,
+            specRoot,
+            resolverRoot
           };
         }
       input:
@@ -250,147 +303,256 @@ compose:
           in:
             source: |
               async ({ state }) => {
-                const ensureArray = (value) => (Array.isArray(value) ? value.filter((item) => item && typeof item === 'object') : []);
-                const sources = [];
+                const path = await import('node:path');
+                const fs = await import('node:fs/promises');
 
-                if (state.cataloguePath) {
-                  sources.push({
-                    id: 'lcod-local',
-                    entrypoint: { type: 'file', path: state.cataloguePath }
+                const normalize = (value) => (typeof value === 'string' && value.length ? value : null);
+                const warnings = [];
+
+                const componentId = normalize(state.componentId);
+                if (!componentId || !componentId.startsWith('lcod://')) {
+                  return { found: false, warnings };
+                }
+
+                const [idBody] = componentId.slice('lcod://'.length).split('@');
+                if (!idBody) {
+                  return { found: false, warnings };
+                }
+                const parts = idBody.split('/').filter(Boolean);
+                if (parts.length === 0) {
+                  return { found: false, warnings };
+                }
+
+                const exists = async (candidate) => {
+                  try {
+                    const stat = await fs.stat(candidate);
+                    return stat.isFile();
+                  } catch (_err) {
+                    return false;
+                  }
+                };
+
+                const candidates = [];
+                if (normalize(state.specRoot)) {
+                  candidates.push({
+                    composePath: path.join(normalize(state.specRoot), ...parts, 'compose.yaml'),
+                    repoRoot: normalize(state.specRoot)
+                  });
+                }
+                if (normalize(state.resolverRoot) && parts[0] === 'resolver') {
+                  const resolverParts = parts.slice(1);
+                  candidates.push({
+                    composePath: path.join(
+                      normalize(state.resolverRoot),
+                      'packages',
+                      'resolver',
+                      'components',
+                      ...resolverParts,
+                      'compose.yaml'
+                    ),
+                    repoRoot: normalize(state.resolverRoot)
                   });
                 }
 
-                sources.push({
-                  id: 'lcod-official',
-                  entrypoint: {
-                    type: 'https',
-                    url: 'https://raw.githubusercontent.com/lcod-team/lcod-registry/main/catalogues.jsonl'
-                  }
-                });
-
-                const extras = ensureArray(state.extraSources);
-                for (const entry of extras) {
-                  try {
-                    sources.push(JSON.parse(JSON.stringify(entry)));
-                  } catch (_err) {
-                    sources.push(entry);
+                for (const candidate of candidates) {
+                  if (await exists(candidate.composePath)) {
+                    return {
+                      found: true,
+                      warnings,
+                      result: {
+                        id: componentId,
+                        composePath: candidate.composePath,
+                        repoRoot: candidate.repoRoot
+                      }
+                    };
                   }
                 }
 
-                return { sources };
+                return { found: false, warnings };
               }
             input:
-              cataloguePath: $.resolvedPaths.cataloguePath
-              extraSources: $.extraRegistrySources
+              componentId: $.componentId
+              specRoot: $.resolvedPaths.specRoot
+              resolverRoot: $.resolvedPaths.resolverRoot
           out:
-            generatedSources: sources
-        - call: lcod://impl/set@1
-          in:
-            sourcesSpec:
-              schema: "lcod-resolver/sources@1"
-              sources: $.generatedSources
-          out:
-            sourcesSpec: sourcesSpec
-        - call: lcod://tooling/registry_sources/resolve@0.1.0
-          in:
-            projectPath: $.resolvedPaths.projectRoot
-            cacheDir: $.resolvedPaths.projectCacheDir
-            sourcesPath: $.pathOptions.sourcesPath
-            defaultSourcesSpec: $.sourcesSpec
-            cwd: $.resolvedPaths.cwd
-          out:
-            registrySources: registrySources
-            warnings: resolveWarnings
-        - call: lcod://tooling/registry/index@0.1.0
-          in:
-            sources: $.registrySources
-          out:
-            registryEntries: registryEntries
-            registryPackages: registryPackages
-            registryRegistries: registryRegistries
-            indexWarnings: indexWarnings
+            specLookupFound: specLookupFound
+            specLookupResult: specLookupResult
+            specLookupWarningsRaw: specLookupWarningsRaw
         - call: lcod://tooling/value/default_array@0.1.0
           in:
-            value: $.registryEntries
+            value: $.specLookupWarningsRaw
           out:
-            registryEntriesList: resolved
-        - call: lcod://tooling/value/is_string_nonempty@0.1.0
+            specLookupWarnings: specLookupWarnings
+        - call: lcod://flow/if@1
           in:
-            value: $.componentId
+            cond: $.specLookupFound
           out:
-            componentIdValid: componentIdValid
-        - call: lcod://flow/foreach@1
-          in:
-            list: $.registryEntriesList
-            collectPath: $.matches
-          out:
-            matches: results
+            finalResult: finalResult
+            finalFound: finalFound
+            finalWarnings: finalWarnings
           slots:
-            body:
-              - call: lcod://tooling/value/is_object@0.1.0
+            then:
+              - call: lcod://impl/set@1
                 in:
-                  value: $slot.item
+                  finalFound: true
+                  finalResult: $.specLookupResult
+                  finalWarnings: $.specLookupWarnings
                 out:
-                  entryIsObject: ok
-              - call: lcod://flow/if@1
+                  finalFound: finalFound
+                  finalResult: finalResult
+                  finalWarnings: finalWarnings
+            else:
+              - call: lcod://tooling/script@1
                 in:
-                  cond: $.entryIsObject
+                  source: |
+                    async ({ state }) => {
+                      const ensureArray = (value) => (Array.isArray(value) ? value.filter((item) => item && typeof item === 'object') : []);
+                      const sources = [];
+
+                      if (state.cataloguePath) {
+                        sources.push({
+                          id: 'lcod-local',
+                          entrypoint: { type: 'file', path: state.cataloguePath }
+                        });
+                      }
+
+                      sources.push({
+                        id: 'lcod-official',
+                        entrypoint: {
+                          type: 'https',
+                          url: 'https://raw.githubusercontent.com/lcod-team/lcod-registry/main/catalogues.jsonl'
+                        }
+                      });
+
+                      const extras = ensureArray(state.extraSources);
+                      for (const entry of extras) {
+                        try {
+                          sources.push(JSON.parse(JSON.stringify(entry)));
+                        } catch (_err) {
+                          sources.push(entry);
+                        }
+                      }
+
+                      return { sources };
+                    }
+                  input:
+                    cataloguePath: $.resolvedPaths.cataloguePath
+                    extraSources: $.extraRegistrySources
                 out:
-                  match: match
+                  generatedSources: sources
+              - call: lcod://impl/set@1
+                in:
+                  sourcesSpec:
+                    schema: "lcod-resolver/sources@1"
+                    sources: $.generatedSources
+                out:
+                  sourcesSpec: sourcesSpec
+              - call: lcod://tooling/registry_sources/resolve@0.1.0
+                in:
+                  projectPath: $.resolvedPaths.projectRoot
+                  cacheDir: $.resolvedPaths.projectCacheDir
+                  sourcesPath: $.pathOptions.sourcesPath
+                  defaultSourcesSpec: $.sourcesSpec
+                  cwd: $.resolvedPaths.cwd
+                out:
+                  registrySources: registrySources
+                  warnings: resolveWarnings
+              - call: lcod://tooling/registry/index@0.1.0
+                in:
+                  sources: $.registrySources
+                out:
+                  registryEntries: registryEntries
+                  registryPackages: registryPackages
+                  registryRegistries: registryRegistries
+                  indexWarnings: indexWarnings
+              - call: lcod://tooling/value/default_array@0.1.0
+                in:
+                  value: $.registryEntries
+                out:
+                  registryEntriesList: resolved
+              - call: lcod://tooling/value/is_string_nonempty@0.1.0
+                in:
+                  value: $.componentId
+                out:
+                  componentIdValid: componentIdValid
+              - call: lcod://flow/foreach@1
+                in:
+                  list: $.registryEntriesList
+                  collectPath: $.matches
+                out:
+                  matches: results
                 slots:
-                  then:
-                    - call: lcod://tooling/value/is_string_nonempty@0.1.0
-                      in:
-                        value: $slot.item.id
-                      out:
-                        entryHasId: ok
+                  body:
                     - call: lcod://tooling/value/is_object@0.1.0
                       in:
-                        value: $slot.item.compose
+                        value: $slot.item
                       out:
-                        composeIsObject: ok
-                    - call: lcod://tooling/script@1
-                      in:
-                        source: |
-                          async ({ state }) => ({ idsMatch: state.entryId === state.componentId })
-                        input:
-                          entryId: $slot.item.id
-                          componentId: $.componentId
-                      out:
-                        idsMatch: idsMatch
+                        entryIsObject: ok
                     - call: lcod://flow/if@1
                       in:
-                        cond: $.componentIdValid
+                        cond: $.entryIsObject
                       out:
                         match: match
                       slots:
                         then:
+                          - call: lcod://tooling/value/is_string_nonempty@0.1.0
+                            in:
+                              value: $slot.item.id
+                            out:
+                              entryHasId: ok
+                          - call: lcod://tooling/value/is_object@0.1.0
+                            in:
+                              value: $slot.item.compose
+                            out:
+                              composeIsObject: ok
+                          - call: lcod://tooling/script@1
+                            in:
+                              source: |
+                                async ({ state }) => ({ idsMatch: state.entryId === state.componentId })
+                              input:
+                                entryId: $slot.item.id
+                                componentId: $.componentId
+                            out:
+                              idsMatch: idsMatch
                           - call: lcod://flow/if@1
                             in:
-                              cond: $.entryHasId
+                              cond: $.componentIdValid
                             out:
                               match: match
                             slots:
                               then:
                                 - call: lcod://flow/if@1
                                   in:
-                                    cond: $.idsMatch
+                                    cond: $.entryHasId
                                   out:
                                     match: match
                                   slots:
                                     then:
                                       - call: lcod://flow/if@1
                                         in:
-                                          cond: $.composeIsObject
+                                          cond: $.idsMatch
                                         out:
                                           match: match
                                         slots:
                                           then:
-                                            - call: lcod://impl/set@1
+                                            - call: lcod://flow/if@1
                                               in:
-                                                match: $slot.item
+                                                cond: $.composeIsObject
                                               out:
                                                 match: match
+                                              slots:
+                                                then:
+                                                  - call: lcod://impl/set@1
+                                                    in:
+                                                      match: $slot.item
+                                                    out:
+                                                      match: match
+                                                else:
+                                                  - call: lcod://impl/set@1
+                                                    in:
+                                                      match: null
+                                                    out:
+                                                      match: match
                                           else:
                                             - call: lcod://impl/set@1
                                               in:
@@ -415,66 +577,66 @@ compose:
                               match: null
                             out:
                               match: match
-                else:
-                  - call: lcod://impl/set@1
-                    in:
-                      match: null
-                    out:
-                      match: match
-        - call: lcod://tooling/value/default_array@0.1.0
-          in:
-            value: $.matches
-          out:
-            matches: matches
-        - call: lcod://tooling/value/is_object@0.1.0
-          in:
-            value: $.matches[0]
-          out:
-            firstMatchIsObject: ok
-        - call: lcod://tooling/value/default_array@0.1.0
-          in:
-            value: $.resolveWarnings
-          out:
-            resolveWarningsArray: resolved
-        - call: lcod://tooling/value/default_array@0.1.0
-          in:
-            value: $.indexWarnings
-          out:
-            indexWarningsArray: resolved
-        - call: lcod://tooling/array/append@0.1.0
-          in:
-            items: $.resolveWarningsArray
-            values: $.indexWarningsArray
-          out:
-            aggregatedWarnings: items
-        - call: lcod://flow/if@1
-          in:
-            cond: $.firstMatchIsObject
-          out:
-            finalResult: finalResult
-            finalFound: finalFound
-            finalWarnings: finalWarnings
-          slots:
-            then:
-              - call: lcod://impl/set@1
+              - call: lcod://tooling/value/default_array@0.1.0
                 in:
-                  finalFound: true
-                  finalResult: $.matches[0]
-                  finalWarnings: $.aggregatedWarnings
+                  value: $.matches
                 out:
-                  finalFound: finalFound
-                  finalResult: finalResult
-                  finalWarnings: finalWarnings
-            else:
-              - call: lcod://impl/set@1
+                  matches: matches
+              - call: lcod://tooling/value/is_object@0.1.0
                 in:
-                  finalFound: false
-                  finalResult: null
-                  finalWarnings: $.aggregatedWarnings
+                  value: $.matches[0]
                 out:
-                  finalFound: finalFound
+                  firstMatchIsObject: ok
+              - call: lcod://tooling/value/default_array@0.1.0
+                in:
+                  value: $.resolveWarnings
+                out:
+                  resolveWarningsArray: resolved
+              - call: lcod://tooling/value/default_array@0.1.0
+                in:
+                  value: $.indexWarnings
+                out:
+                  indexWarningsArray: resolved
+              - call: lcod://tooling/array/append@0.1.0
+                in:
+                  items: $.resolveWarningsArray
+                  values: $.indexWarningsArray
+                out:
+                  aggregatedWarnings: items
+              - call: lcod://tooling/array/append@0.1.0
+                in:
+                  items: $.specLookupWarnings
+                  values: $.aggregatedWarnings
+                out:
+                  aggregatedWarningsWithSpec: items
+              - call: lcod://flow/if@1
+                in:
+                  cond: $.firstMatchIsObject
+                out:
                   finalResult: finalResult
+                  finalFound: finalFound
                   finalWarnings: finalWarnings
+                slots:
+                  then:
+                    - call: lcod://impl/set@1
+                      in:
+                        finalFound: true
+                        finalResult: $.matches[0]
+                        finalWarnings: $.aggregatedWarningsWithSpec
+                      out:
+                        finalFound: finalFound
+                        finalResult: finalResult
+                        finalWarnings: finalWarnings
+                  else:
+                    - call: lcod://impl/set@1
+                      in:
+                        finalFound: false
+                        finalResult: null
+                        finalWarnings: $.aggregatedWarningsWithSpec
+                      out:
+                        finalFound: finalFound
+                        finalResult: finalResult
+                        finalWarnings: finalWarnings
   - call: lcod://tooling/value/default_array@0.1.0
     in:
       value: $.finalWarnings
