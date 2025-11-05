@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2025-10-20T15:35:32.688Z",
-  "commit": "8b430450b7e2fe4bdf69aac656020a8a266c9943",
+  "generatedAt": "2025-11-05T11:08:50.679Z",
+  "commit": "4672dccbf49de1699b1dd3626ba2daa1a2bb8bba",
   "ref": "main",
   "package": {
     "id": "lcod://tooling/resolver@0.1.0",
@@ -11,46 +11,15 @@
   },
   "workspace": {
     "manifest": "resolver/workspace.lcp.toml",
-    "components": [
-      {
-        "id": "internal/load-descriptor",
-        "path": "resolver/packages/resolver/components/internal/load_descriptor"
-      },
-      {
-        "id": "internal/load-config",
-        "path": "resolver/packages/resolver/components/internal/load_config"
-      },
-      {
-        "id": "internal/lock-path",
-        "path": "resolver/packages/resolver/components/internal/lock_path"
-      },
-      {
-        "id": "internal/prepare-config",
-        "path": "resolver/packages/resolver/components/internal/prepare_config"
-      },
-      {
-        "id": "internal/prepare-cache",
-        "path": "resolver/packages/resolver/components/internal/prepare_cache"
-      },
-      {
-        "id": "internal/load-sources",
-        "path": "resolver/packages/resolver/components/internal/load_sources"
-      },
-      {
-        "id": "internal/resolve-dependencies",
-        "path": "resolver/packages/resolver/components/internal/resolve_dependencies"
-      },
-      {
-        "id": "internal/summarize-result",
-        "path": "resolver/packages/resolver/components/internal/summarize_result"
-      },
-      {
-        "id": "internal/build-lock",
-        "path": "resolver/packages/resolver/components/internal/build_lock"
-      }
-    ]
+    "components": []
   },
   "components": [
+    {
+      "id": "lcod://resolver/locate_component@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/locate_component/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/locate_component/lcp.toml"
+    },
     {
       "id": "lcod://tooling/resolver/internal/build-lock@0.1.0",
       "version": "0.1.0",
@@ -104,12 +73,6 @@
       "version": "0.1.0",
       "composePath": "resolver/packages/resolver/components/internal/summarize_result/compose.yaml",
       "manifestPath": "resolver/packages/resolver/components/internal/summarize_result/lcp.toml"
-    },
-    {
-      "id": "lcod://resolver/locate_component@0.1.0",
-      "version": "0.1.0",
-      "composePath": "resolver/packages/resolver/components/locate_component/compose.yaml",
-      "manifestPath": "resolver/packages/resolver/components/locate_component/lcp.toml"
     }
   ]
 }
