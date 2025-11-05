@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2025-11-05T11:08:50.679Z",
-  "commit": "4672dccbf49de1699b1dd3626ba2daa1a2bb8bba",
+  "generatedAt": "2025-11-05T18:15:17.445Z",
+  "commit": "2ef124fb6ed54bbadca67734430b3893b5985ac5",
   "ref": "main",
   "package": {
     "id": "lcod://tooling/resolver@0.1.0",
