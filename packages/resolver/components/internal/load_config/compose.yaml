@@ -43,39 +43,39 @@ compose:
     in:
       value: $.decodeWarnings
     out:
-      decodeWarnings: value
+      decodeWarnings: resolved
 
   - call: lcod://tooling/value/default_object@0.1.0
     in:
       value: $.decodedConfig
     out:
-      normalizedConfig: value
+      normalizedConfig: resolved
 
   - call: lcod://tooling/value/default_object@0.1.0
     in:
       value: $.normalizedConfig.sources
       fallback: {}
     out:
-      resolvedSources: value
+      resolvedSources: resolved
 
   - call: lcod://tooling/value/default_object@0.1.0
     in:
       value: $.normalizedConfig.replace
       fallback: {}
     out:
-      resolvedReplace: value
+      resolvedReplace: resolved
 
   - call: lcod://tooling/value/default_array@0.1.0
     in:
       value: $.normalizedConfig.allowlist
     out:
-      resolvedAllowlist: value
+      resolvedAllowlist: resolved
 
   - call: lcod://tooling/value/default_array@0.1.0
     in:
       value: $.decodeWarnings
     out:
-      warningsAccumulator: value
+      warningsAccumulator: resolved
 
   - call: lcod://flow/if@1
     in:
@@ -86,7 +86,7 @@ compose:
           in:
             value: $.warningsAccumulator
           out:
-            warningsAccumulator: value
+            warningsAccumulator: resolved
         - call: lcod://tooling/array/append@0.1.0
           in:
             items: $.warningsAccumulator
