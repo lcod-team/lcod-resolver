@@ -51,10 +51,41 @@ compose:
       registryPackages: registryPackages
       indexWarnings: indexWarnings
 
-  - call: lcod://tooling/script@1
-    in:
-      source: |
-        async ({ state, imports }) => {
+  - call: lcod://flow/try@1
+    out:
+      resolverResult: resolverResult
+      warnings: resolveWarnings
+    slots:
+      body:
+        - &resolve_contract_call
+          call: lcod://contract/tooling/resolver/resolve_dependencies@1
+          in:
+            projectPath: $.projectPath
+            cacheRoot: $.cacheRoot
+            normalizedConfig: $.normalizedConfig
+            config: $.config
+            rootId: $.descriptor.id
+            rootDescriptor: $.descriptor
+            rootDescriptorText: $.descriptorText
+            warnings: $.normalizedWarnings
+            loadWarnings: $.loadWarnings
+            indexWarnings: $.indexWarnings
+            registrationWarnings: $.registrationWarnings
+            registrySources: $.registrySources
+            registryPackages: $.registryPackages
+            registryEntries: $.registryEntries
+            registryRegistries: $.registryRegistries
+            pointerWarnings: $.pointerWarnings
+            pointerRegistrySources: $.pointerRegistrySources
+            sourcesPath: $.sourcesPath
+          out:
+            resolverResult: resolverResult
+            warnings: resolveWarnings
+      catch:
+        - call: lcod://tooling/script@1
+          in:
+            source: |
+              async ({ state, imports }) => {
               const mergeWarnings = typeof imports.mergeWarnings === 'function'
                 ? imports.mergeWarnings
                 : null;
@@ -743,29 +774,29 @@ compose:
                 warnings
               };
             }
-      input:
-        projectPath: $.projectPath
-        cacheRoot: $.cacheRoot
-        normalizedConfig: $.normalizedConfig
-        config: $.config
-        rootId: $.rootId
-        rootDescriptor: $.rootDescriptor
-        rootDescriptorText: $.rootDescriptorText
-        warnings: $.warnings
-        loadWarnings: $.loadWarnings
-        indexWarnings: $.indexWarnings
-        registrationWarnings: $.registrationWarnings
-        registrySources: $.registrySources
-        registryPackages: $.registryPackages
-        registryEntries: $.registryEntries
-        registryRegistries: $.registryRegistries
-        pointerWarnings: $.pointerWarnings
-        pointerRegistrySources: $.pointerRegistrySources
-        sourcesPath: $.sourcesPath
-      imports:
-        mergeWarnings: lcod://tooling/resolver/warnings/merge@0.1.0
-        contextPrepare: lcod://tooling/resolver/context/prepare@0.1.0
-        replaceApply: lcod://tooling/resolver/replace/apply@0.1.0
+          input:
+            projectPath: $.projectPath
+            cacheRoot: $.cacheRoot
+            normalizedConfig: $.normalizedConfig
+            config: $.config
+            rootId: $.descriptor.id
+            rootDescriptor: $.descriptor
+            rootDescriptorText: $.descriptorText
+            warnings: $.normalizedWarnings
+            loadWarnings: $.loadWarnings
+            indexWarnings: $.indexWarnings
+            registrationWarnings: $.registrationWarnings
+            registrySources: $.registrySources
+            registryPackages: $.registryPackages
+            registryEntries: $.registryEntries
+            registryRegistries: $.registryRegistries
+            pointerWarnings: $.pointerWarnings
+            pointerRegistrySources: $.pointerRegistrySources
+            sourcesPath: $.sourcesPath
+          imports:
+            mergeWarnings: lcod://tooling/resolver/warnings/merge@0.1.0
+            contextPrepare: lcod://tooling/resolver/context/prepare@0.1.0
+            replaceApply: lcod://tooling/resolver/replace/apply@0.1.0
         registrySelect: lcod://tooling/registry/select@0.1.0
         pathJoin: lcod://axiom/path/join@1
         fsReadFile: lcod://axiom/fs/read-file@1
@@ -773,9 +804,3 @@ compose:
         hash: lcod://contract/core/hash/sha256@1
         gitClone: lcod://contract/core/git/clone@1
         httpDownload: lcod://axiom/http/download@1
-        out:
-          resolverResult: resolverResult
-          warnings: warnings
-    out:
-      resolverResult: resolverResult
-      warnings: warnings
