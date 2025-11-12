@@ -12,7 +12,8 @@ compose:
       projectPath: $.projectPath
       configPath: $.configPath
     out:
-      config: resolverConfig
+      resolverConfig: config
+      config: config
       configPath: resolvedConfigPath
       warnings: configWarnings
 
@@ -51,6 +52,7 @@ compose:
     out:
       resolverResult: resolverResult
       warnings: resolveWarnings
+      contractSourcesSnapshot: contractSourcesSnapshot
 
   - call: internal/summarize-result
     in:
@@ -117,7 +119,9 @@ compose:
       lockPath: $.lockPath
       components: $.normalizedComponents
       warnings: $.normalizedWarnings
+      contractSourcesSnapshot: $.contractSourcesSnapshot
     out:
       lockPath: lockPath
       components: components
       warnings: warnings
+      contractSourcesSnapshot: contractSourcesSnapshot

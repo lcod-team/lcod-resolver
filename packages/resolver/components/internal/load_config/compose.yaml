@@ -120,7 +120,7 @@ compose:
   - call: lcod://impl/set@1
     in:
       configPath: $.effectiveConfigPath
-      config: $.resolverConfig.value ?? $.resolverConfig
+      config: $.resolverConfig.value
       warnings: $.warnings
     out:
       configPath: configPath
