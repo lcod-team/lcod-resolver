@@ -1,0 +1,40 @@
+schemaVersion = "2.0"
+id = "lcod://resolver/internal/parse_component_id@0.1.0"
+version = "0.1.0"
+kind = "component"
+summary = "Parse an LCOD component id into namespace, version, and path segments."
+
+[deps]
+requires = [
+  "lcod://impl/set@1",
+  "lcod://flow/if@1",
+  "lcod://tooling/value/default_array@0.1.0",
+  "lcod://tooling/value/is_string_nonempty@0.1.0",
+  "lcod://contract/core/string/split@1.0.0",
+  "lcod://contract/core/array/length@1"
+]
+
+[inputs.componentId]
+summary = "Component identifier (lcod://...)."
+required = true
+schema = """
+{ "type": "string" }
+"""
+
+[outputs.valid]
+summary = "Whether the identifier was parsed successfully."
+schema = "{ \"type\": \"boolean\" }"
+
+[outputs.namespace]
+summary = "Top-level namespace (first path segment)."
+schema = "{ \"type\": [\"string\", \"null\"] }"
+
+[outputs.version]
+summary = "Version extracted from the id (may be null)."
+schema = "{ \"type\": [\"string\", \"null\"] }"
+
+[outputs.pathParts]
+summary = "Array of path segments derived from the identifier."
+schema = """
+{ "type": "array", "items": { "type": "string" } }
+"""

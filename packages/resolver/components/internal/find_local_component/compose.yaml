@@ -1,0 +1,309 @@
+compose:
+  - call: lcod://tooling/value/default_array@0.1.0
+    in:
+      value: $.warnings
+    out:
+      warnings: resolved
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.componentsRegistryPath
+    out:
+      hasRegistryPath: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasRegistryPath
+    out:
+      found: found
+      result: result
+      warnings: warnings
+    slots:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            jsonParseSuccess: false
+            candidateEntries: []
+            registryWarnings: $.warnings
+          out:
+            jsonParseSuccess: jsonParseSuccess
+            candidateEntries: candidateEntries
+            warnings: warnings
+
+        - call: lcod://flow/try@1
+          out:
+            jsonParseSuccess: jsonParseSuccess
+            candidateEntries: candidateEntries
+            warnings: warnings
+          slots:
+            body:
+              - call: lcod://tooling/json/read_file@0.1.0
+                in:
+                  path: $.componentsRegistryPath
+                out:
+                  jsonFile: $
+              - call: lcod://tooling/value/is_array@0.1.0
+                in:
+                  value: $.jsonFile.value
+                out:
+                  isArray: ok
+              - call: lcod://flow/if@1
+                in:
+                  cond: $.isArray
+                out:
+                  jsonParseSuccess: jsonParseSuccess
+                  candidateEntries: candidateEntries
+                slots:
+                  then:
+                    - call: lcod://impl/set@1
+                      in:
+                        jsonParseSuccess: true
+                        candidateEntries: $.jsonFile.value
+                      out:
+                        jsonParseSuccess: jsonParseSuccess
+                        candidateEntries: candidateEntries
+                  else:
+                    - call: lcod://core/string/format@0.1.0
+                      in:
+                        template: "Local registry {path} is not an array; falling back to JSONL."
+                        values:
+                          path: $.componentsRegistryPath
+                      out:
+                        notArrayWarning: value
+                    - call: lcod://tooling/array/append@0.1.0
+                      in:
+                        items: $.warnings
+                        values:
+                          - $.notArrayWarning
+                      out:
+                        warnings: items
+            catch:
+              - call: lcod://core/string/format@0.1.0
+                in:
+                  template: "Failed to parse {path} as JSON; falling back to JSONL."
+                  values:
+                    path: $.componentsRegistryPath
+                out:
+                  jsonParseWarning: value
+              - call: lcod://tooling/array/append@0.1.0
+                in:
+                  items: $.warnings
+                  values:
+                    - $.jsonParseWarning
+                out:
+                  warnings: items
+
+        - call: lcod://flow/if@1
+          in:
+            cond: $.jsonParseSuccess
+          out:
+            candidateEntries: candidateEntries
+            warnings: warnings
+          slots:
+            else:
+              - call: lcod://tooling/jsonl/read@0.1.0
+                in:
+                  path: $.componentsRegistryPath
+                out:
+                  jsonlEntries: entries
+                  jsonlWarnings: warnings
+              - call: lcod://tooling/value/default_array@0.1.0
+                in:
+                  value: $.jsonlWarnings
+                out:
+                  jsonlWarnings: resolved
+              - call: lcod://tooling/array/append@0.1.0
+                in:
+                  items: $.warnings
+                  values: $.jsonlWarnings
+                out:
+                  warnings: items
+              - call: lcod://impl/set@1
+                in:
+                  candidateEntries: $.jsonlEntries
+                out:
+                  candidateEntries: candidateEntries
+
+        - call: lcod://impl/set@1
+          in:
+            localFound: false
+            localResult: null
+          out:
+            localFound: localFound
+            localResult: localResult
+
+        - call: lcod://flow/foreach@1
+          in:
+            list: $.candidateEntries
+          slots:
+            body:
+              - call: lcod://tooling/value/is_object@0.1.0
+                in:
+                  value: $slot.item
+                out:
+                  entryIsObject: ok
+              - call: lcod://flow/if@1
+                in:
+                  cond: $.entryIsObject
+                slots:
+                  then:
+                    - call: lcod://tooling/value/is_string_nonempty@0.1.0
+                      in:
+                        value: $slot.item.id
+                      out:
+                        entryHasId: ok
+                    - call: lcod://flow/if@1
+                      in:
+                        cond: $.entryHasId
+                      slots:
+                        then:
+                          - call: lcod://tooling/value.deep_equal@0.1.0
+                            in:
+                              left: $slot.item.id
+                              right: $.componentId
+                            out:
+                              compare: result
+                          - call: lcod://flow/if@1
+                            in:
+                              cond: $.compare.equal
+                            slots:
+                              then:
+                                - call: lcod://impl/set@1
+                                  in:
+                                    composeRelative: $slot.item.compose
+                                  out:
+                                    composeRelative: composeRelative
+                                - call: lcod://tooling/value/is_string_nonempty@0.1.0
+                                  in:
+                                    value: $.composeRelative
+                                  out:
+                                    hasComposeRel: ok
+                                - call: lcod://flow/if@1
+                                  in:
+                                    cond: $.hasComposeRel
+                                  out:
+                                    composePath: composePath
+                                  slots:
+                                    then:
+                                      - call: lcod://axiom/path/join@1
+                                        in:
+                                          base: $.componentsRoot
+                                          segment: $.composeRelative
+                                        out:
+                                          composePath: path
+                                    else:
+                                      - call: lcod://tooling/value/is_string_nonempty@0.1.0
+                                        in:
+                                          value: $slot.item.composePath
+                                        out:
+                                          hasLegacyCompose: ok
+                                      - call: lcod://flow/if@1
+                                        in:
+                                          cond: $.hasLegacyCompose
+                                        out:
+                                          composePath: composePath
+                                        slots:
+                                          then:
+                                            - call: lcod://impl/set@1
+                                              in:
+                                                composePath: $slot.item.composePath
+                                              out:
+                                                composePath: composePath
+                                          else:
+                                            - call: lcod://core/string/format@0.1.0
+                                              in:
+                                                template: "Entry {id} is missing compose path in {path}"
+                                                values:
+                                                  id: $.componentId
+                                                  path: $.componentsRegistryPath
+                                              out:
+                                                missingComposeWarning: value
+                                            - call: lcod://tooling/array/append@0.1.0
+                                              in:
+                                                items: $.warnings
+                                                values:
+                                                  - $.missingComposeWarning
+                                              out:
+                                                warnings: items
+                                - call: lcod://tooling/value/is_string_nonempty@0.1.0
+                                  in:
+                                    value: $.composePath
+                                  out:
+                                    hasComposePath: ok
+                                - call: lcod://flow/if@1
+                                  in:
+                                    cond: $.hasComposePath
+                                  slots:
+                                    then:
+                                      - call: lcod://impl/set@1
+                                        in:
+                                          localFound: true
+                                          localResult:
+                                            id: $.componentId
+                                            composePath: $.composePath
+                                            repoRoot: $.componentsRoot
+                                        out:
+                                          localFound: localFound
+                                          localResult: localResult
+                                      - call: lcod://flow/break@1
+
+        - call: lcod://flow/if@1
+          in:
+            cond: $.localFound
+          out:
+            found: found
+            result: result
+            warnings: warnings
+          slots:
+            then:
+              - call: lcod://impl/set@1
+                in:
+                  found: true
+                  result: $.localResult
+                out:
+                  found: found
+                  result: result
+            else:
+              - call: lcod://core/string/format@0.1.0
+                in:
+                  template: "Component {id} not found in local registry {path}"
+                  values:
+                    id: $.componentId
+                    path: $.componentsRegistryPath
+                out:
+                  notFoundWarning: value
+              - call: lcod://tooling/array/append@0.1.0
+                in:
+                  items: $.warnings
+                  values:
+                    - $.notFoundWarning
+                out:
+                  warnings: items
+              - call: lcod://impl/set@1
+                in:
+                  found: false
+                  result: null
+                out:
+                  found: found
+                  result: result
+
+      else:
+        - call: lcod://core/string/format@0.1.0
+          in:
+            template: "Local components registry path missing; skipping local resolution."
+          out:
+            missingRegistryWarning: value
+        - call: lcod://tooling/array/append@0.1.0
+          in:
+            items: $.warnings
+            values:
+              - $.missingRegistryWarning
+          out:
+            warnings: items
+        - call: lcod://impl/set@1
+          in:
+            found: false
+            result: null
+          out:
+            found: found
+            result: result

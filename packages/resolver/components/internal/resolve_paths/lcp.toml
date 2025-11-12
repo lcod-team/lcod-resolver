@@ -1,0 +1,79 @@
+schemaVersion = "2.0"
+id = "lcod://resolver/internal/resolve_paths@0.1.0"
+version = "0.1.0"
+kind = "component"
+summary = "Resolve workspace, cache, and registry paths without relying on scripts."
+
+[deps]
+requires = [
+  "lcod://impl/set@1",
+  "lcod://flow/if@1",
+  "lcod://flow/foreach@1",
+  "lcod://flow/break@1",
+  "lcod://tooling/value/default_object@0.1.0",
+  "lcod://tooling/value/is_string_nonempty@0.1.0",
+  "lcod://tooling/array/append@0.1.0",
+  "lcod://tooling/path/dirname@0.1.0",
+  "lcod://axiom/path/join@1",
+  "lcod://contract/core/runtime/info@1.0.0",
+  "lcod://contract/core/env/get@1.0.0",
+  "lcod://contract/core/fs/stat@1.0.0"
+]
+
+[inputs.refererPath]
+summary = "Compose path invoking the resolver (used to anchor relative project paths)."
+required = false
+schema = """
+{ "type": ["string", "null"] }
+"""
+
+[inputs.pathOptions]
+summary = "Optional overrides for project path and registry hints."
+required = false
+schema = """
+{
+  "type": "object",
+  "properties": {
+    "projectPath": { "type": ["string", "null"] },
+    "cataloguePath": { "type": ["string", "null"] },
+    "componentsRoot": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}
+"""
+
+[inputs.cacheOptions]
+summary = "Overrides for cache directories."
+required = false
+schema = """
+{
+  "type": "object",
+  "properties": {
+    "projectCacheDir": { "type": ["string", "null"] },
+    "userCacheDir": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}
+"""
+
+[outputs.resolvedPaths]
+summary = "Resolved filesystem paths used by locate_component."
+schema = """
+{
+  "type": "object",
+  "properties": {
+    "cwd": { "type": "string" },
+    "refererPath": { "type": ["string", "null"] },
+    "projectRoot": { "type": "string" },
+    "projectCacheDir": { "type": "string" },
+    "userCacheDir": { "type": "string" },
+    "cataloguePath": { "type": ["string", "null"] },
+    "componentsRoot": { "type": ["string", "null"] },
+    "componentsRegistryPath": { "type": ["string", "null"] },
+    "specRoot": { "type": ["string", "null"] },
+    "resolverRoot": { "type": ["string", "null"] }
+  },
+  "required": ["cwd", "projectRoot", "projectCacheDir", "userCacheDir"],
+  "additionalProperties": true
+}
+"""

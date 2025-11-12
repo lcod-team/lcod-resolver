@@ -1,0 +1,117 @@
+compose:
+  - call: lcod://tooling/value/default_array@0.1.0
+    in:
+      value: []
+    out:
+      pathParts: resolved
+
+  - call: lcod://impl/set@1
+    in:
+      valid: false
+      namespace: null
+      version: null
+    out:
+      valid: valid
+      namespace: namespace
+      version: version
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.componentId
+    out:
+      hasComponentId: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasComponentId
+    out:
+      valid: valid
+      namespace: namespace
+      version: version
+      pathParts: pathParts
+    slots:
+      then:
+        - call: lcod://contract/core/string/split@1.0.0
+          in:
+            text: $.componentId
+            separator: "://"
+            limit: 2
+          out:
+            prefixSplit: segments
+        - call: lcod://tooling/value/is_string_nonempty@0.1.0
+          in:
+            value: $.prefixSplit[1]
+          out:
+            hasBody: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.hasBody
+          out:
+            valid: valid
+            namespace: namespace
+            version: version
+            pathParts: pathParts
+          slots:
+            then:
+              - call: lcod://contract/core/string/split@1.0.0
+                in:
+                  text: $.prefixSplit[1]
+                  separator: "@"
+                  limit: 2
+                out:
+                  idSegments: segments
+              - call: lcod://impl/set@1
+                in:
+                  pathComponent: $.idSegments[0]
+                  version: $.idSegments[1]
+                out:
+                  pathComponent: pathComponent
+                  version: version
+              - call: lcod://tooling/value/is_string_nonempty@0.1.0
+                in:
+                  value: $.pathComponent
+                out:
+                  hasPathComponent: ok
+              - call: lcod://flow/if@1
+                in:
+                  cond: $.hasPathComponent
+                out:
+                  valid: valid
+                  namespace: namespace
+                  pathParts: pathParts
+                slots:
+                  then:
+                    - call: lcod://contract/core/string/split@1.0.0
+                      in:
+                        text: $.pathComponent
+                        separator: "/"
+                        trim: true
+                        removeEmpty: true
+                      out:
+                        rawParts: segments
+                    - call: lcod://impl/set@1
+                      in:
+                        pathParts: $.rawParts
+                      out:
+                        pathParts: pathParts
+                    - call: lcod://contract/core/array/length@1
+                      in:
+                        items: $.pathParts
+                      out:
+                        partsLength: length
+                    - call: lcod://flow/if@1
+                      in:
+                        cond: $.partsLength
+                      out:
+                        valid: valid
+                        namespace: namespace
+                      slots:
+                        then:
+                          - call: lcod://impl/set@1
+                            in:
+                              valid: true
+                              namespace: $.pathParts[0]
+                            out:
+                              valid: valid
+                              namespace: namespace
+*** End Patch

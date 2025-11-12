@@ -1,131 +1,366 @@
 compose:
-  - call: lcod://tooling/script@1
+  - call: lcod://tooling/value/default_array@0.1.0
     in:
-      source: |
-        async ({ state }) => {
-          const warnings = Array.isArray(state.warnings)
-            ? state.warnings.filter((entry) => typeof entry === 'string' && entry.length > 0)
-            : [];
-          const baseConfig = state.resolverConfig && typeof state.resolverConfig === 'object'
-            ? state.resolverConfig
-            : (state.config && typeof state.config === 'object' ? state.config : {});
-          const sources = baseConfig.sources && typeof baseConfig.sources === 'object'
-            ? Object.fromEntries(Object.entries(baseConfig.sources))
-            : {};
-          const replaceRaw = baseConfig.replace && typeof baseConfig.replace === 'object'
-            ? baseConfig.replace
-            : {};
-          const allowlist = Array.isArray(baseConfig.allowlist)
-            ? baseConfig.allowlist.map((entry) => (typeof entry === 'string' ? entry.trim() : String(entry ?? ''))).filter((entry) => entry.length > 0)
-            : null;
+      value: $.warnings
+      fallback: []
+    out:
+      warningsList: resolved
 
-          const replaceAlias = {};
-          const replaceSpec = {};
-          for (const [key, value] of Object.entries(replaceRaw)) {
-            if (typeof value === 'string') {
-              replaceAlias[key] = value;
-            } else if (value && typeof value === 'object') {
-              replaceSpec[key] = value;
-            }
-          }
+  - call: lcod://tooling/value/is_object@0.1.0
+    in:
+      value: $.resolverConfig
+    out:
+      resolverHasConfig: ok
 
-          const toolingConfig = baseConfig.tooling && typeof baseConfig.tooling === 'object'
-            ? baseConfig.tooling
-            : {};
-          const configSpecRoot = typeof toolingConfig.specRoot === 'string' && toolingConfig.specRoot.length > 0
-            ? toolingConfig.specRoot
-            : null;
-          const envSpecRoot = typeof process?.env?.SPEC_REPO_PATH === 'string' && process.env.SPEC_REPO_PATH.length > 0
-            ? process.env.SPEC_REPO_PATH
-            : null;
-          const specRoot = configSpecRoot ?? envSpecRoot;
+  - call: lcod://impl/set@1
+    in:
+      baseConfigRaw: {}
+    out:
+      baseConfigRaw: baseConfigRaw
 
-          const registryConfig = baseConfig.registry && typeof baseConfig.registry === 'object'
-            ? baseConfig.registry
-            : {};
-          const registrySources = [];
-          if (Array.isArray(registryConfig.sources)) {
-            for (const rawEntry of registryConfig.sources) {
-              if (!rawEntry || typeof rawEntry !== 'object') continue;
-              const registryId = typeof rawEntry.id === 'string' && rawEntry.id.length > 0
-                ? rawEntry.id
-                : null;
-              if (!registryId) {
-                warnings.push('registry source entry is missing an id');
-                continue;
-              }
-              const entryType = typeof rawEntry.type === 'string' && rawEntry.type.length > 0
-                ? rawEntry.type
-                : 'path';
-              const normalizedEntry = { id: registryId, type: entryType };
-              if (Number.isFinite(rawEntry.priority)) {
-                normalizedEntry.priority = Math.trunc(rawEntry.priority);
-              }
-              if (rawEntry.defaults && typeof rawEntry.defaults === 'object') {
-                normalizedEntry.defaults = rawEntry.defaults;
-              }
+  - call: lcod://flow/if@1
+    in:
+      cond: $.resolverHasConfig
+    out:
+      baseConfigRaw: baseConfigRaw
+    slots:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            baseConfigRaw: $.resolverConfig
+          out:
+            baseConfigRaw: baseConfigRaw
+      else:
+        - call: lcod://tooling/value/is_object@0.1.0
+          in:
+            value: $.config
+          out:
+            configHasObject: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.configHasObject
+          out:
+            baseConfigRaw: baseConfigRaw
+          slots:
+            then:
+              - call: lcod://impl/set@1
+                in:
+                  baseConfigRaw: $.config
+                out:
+                  baseConfigRaw: baseConfigRaw
 
-              if (entryType === 'path') {
-                if (typeof rawEntry.path === 'string' && rawEntry.path.length > 0) {
-                  normalizedEntry.path = rawEntry.path;
-                } else {
-                  warnings.push(`registry source "${registryId}" (type=path) is missing "path"`);
-                  continue;
-                }
-                if (typeof rawEntry.packagesPath === 'string' && rawEntry.packagesPath.length > 0) {
-                  normalizedEntry.packagesPath = rawEntry.packagesPath;
-                }
-                if (typeof rawEntry.registryPath === 'string' && rawEntry.registryPath.length > 0) {
-                  normalizedEntry.registryPath = rawEntry.registryPath;
-                }
-              } else if (entryType === 'jsonl') {
-                if (typeof rawEntry.path === 'string' && rawEntry.path.length > 0) {
-                  normalizedEntry.path = rawEntry.path;
-                } else if (typeof rawEntry.jsonl === 'string' && rawEntry.jsonl.length > 0) {
-                  normalizedEntry.jsonl = rawEntry.jsonl;
-                } else {
-                  warnings.push(`registry source "${registryId}" (type=jsonl) is missing "path" or inline "jsonl" content`);
-                  continue;
-                }
-                if (typeof rawEntry.registryPath === 'string' && rawEntry.registryPath.length > 0) {
-                  normalizedEntry.registryPath = rawEntry.registryPath;
-                }
-              } else if (entryType === 'inline') {
-                const lines = Array.isArray(rawEntry.lines)
-                  ? rawEntry.lines.filter((entry) => entry && typeof entry === 'object')
-                  : [];
-                if (!lines.length) {
-                  warnings.push(`registry source "${registryId}" (type=inline) is missing "lines" entries`);
-                  continue;
-                }
-                normalizedEntry.lines = lines;
-                if (typeof rawEntry.jsonl === 'string' && rawEntry.jsonl.length > 0) {
-                  normalizedEntry.jsonl = rawEntry.jsonl;
-                }
-              } else {
-                warnings.push(`registry source "${registryId}" has unsupported type "${entryType}"`);
-                continue;
-              }
-              registrySources.push(normalizedEntry);
-            }
-          }
+  - call: lcod://tooling/value/default_object@0.1.0
+    in:
+      value: $.baseConfigRaw
+    out:
+      baseConfig: resolved
 
-          return {
-            normalizedConfig: {
-              sources,
-              replaceAlias,
-              replaceSpec,
-              allowlist,
-              registrySources,
-              specRoot
-            },
-            warnings
-          };
-        }
-      input:
-        resolverConfig: $.resolverConfig
-        config: $.config
-        warnings: $.warnings
+  - call: lcod://tooling/value/default_object@0.1.0
+    in:
+      value: $.baseConfig.sources
+    out:
+      sourcesObject: resolved
+
+  - call: lcod://tooling/value/default_object@0.1.0
+    in:
+      value: $.baseConfig.replace
+    out:
+      replaceObject: resolved
+
+  - call: lcod://tooling/value/default_object@0.1.0
+    in:
+      value: $.baseConfig.tooling
+    out:
+      toolingConfig: resolved
+
+  - call: lcod://tooling/value/default_object@0.1.0
+    in:
+      value: $.baseConfig.registry
+    out:
+      registryConfig: resolved
+
+  - call: lcod://tooling/value/default_array@0.1.0
+    in:
+      value: $.baseConfig.allowlist
+    out:
+      allowlistRaw: resolved
+
+  - call: lcod://impl/set@1
+    in:
+      allowlist: null
+    out:
+      allowlist: allowlist
+
+  - call: lcod://tooling/value/is_array@0.1.0
+    in:
+      value: $.baseConfig.allowlist
+    out:
+      allowlistIsArray: ok
+
+  - call: lcod://impl/set@1
+    in:
+      allowlistValues: []
+    out:
+      allowlistValues: allowlistValues
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.allowlistIsArray
+    out:
+      allowlist: allowlist
+    slots:
+      then:
+        - call: lcod://flow/foreach@1
+          in:
+            list: $.allowlistRaw
+          slots:
+            body:
+              - call: lcod://contract/core/string/format@1
+                in:
+                  template: "{value}"
+                  values:
+                    value: $slot.item
+                out:
+                  formattedAllow: value
+              - call: lcod://contract/core/string/trim@1
+                in:
+                  text: $.formattedAllow
+                out:
+                  trimmedAllow: value
+              - call: lcod://tooling/value/is_string_nonempty@0.1.0
+                in:
+                  value: $.trimmedAllow
+                out:
+                  trimmedAllowValid: ok
+              - call: lcod://flow/if@1
+                in:
+                  cond: $.trimmedAllowValid
+                slots:
+                  then:
+                    - call: lcod://tooling/array/append@0.1.0
+                      in:
+                        items: $.allowlistValues
+                        values:
+                          - $.trimmedAllow
+                      out:
+                        allowlistValues: items
+        - call: lcod://contract/core/array/length@1
+          in:
+            items: $.allowlistValues
+          out:
+            allowlistLength: length
+        - call: lcod://flow/if@1
+          in:
+            cond: $.allowlistLength
+          out:
+            allowlist: allowlist
+          slots:
+            then:
+              - call: lcod://impl/set@1
+                in:
+                  allowlist: $.allowlistValues
+                out:
+                  allowlist: allowlist
+  - call: lcod://impl/set@1
+    in:
+      replaceAlias: {}
+      replaceSpec: {}
+    out:
+      replaceAlias: replaceAlias
+      replaceSpec: replaceSpec
+
+  - call: lcod://tooling/object/entries@0.1.0
+    in:
+      value: $.replaceObject
+    out:
+      replaceEntries: entries
+
+  - call: lcod://flow/foreach@1
+    in:
+      list: $.replaceEntries
+    slots:
+      body:
+        - call: lcod://impl/set@1
+          in:
+            replaceKey: $slot.item[0]
+            replaceValue: $slot.item[1]
+          out:
+            replaceKey: replaceKey
+            replaceValue: replaceValue
+        - call: lcod://tooling/value/is_string_nonempty@0.1.0
+          in:
+            value: $.replaceKey
+          out:
+            replaceKeyValid: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.replaceKeyValid
+          slots:
+            then:
+              - call: lcod://flow/try@1
+                slots:
+                  body:
+                    - call: lcod://contract/core/string/trim@1
+                      in:
+                        text: $.replaceValue
+                      out:
+                        replaceValueTrimmed: value
+                    - call: lcod://contract/core/object/set@1
+                      in:
+                        object: $.replaceAlias
+                        path:
+                          - $.replaceKey
+                        value: $.replaceValue
+                        clone: false
+                      out:
+                        replaceAlias: object
+                  catch:
+                    - call: lcod://tooling/value/is_object@0.1.0
+                      in:
+                        value: $.replaceValue
+                      out:
+                        replaceValueObject: ok
+                    - call: lcod://flow/if@1
+                      in:
+                        cond: $.replaceValueObject
+                      slots:
+                        then:
+                          - call: lcod://contract/core/object/set@1
+                            in:
+                              object: $.replaceSpec
+                              path:
+                                - $.replaceKey
+                              value: $.replaceValue
+                              clone: false
+                            out:
+                              replaceSpec: object
+  - call: lcod://impl/set@1
+    in:
+      specRoot: null
+    out:
+      specRoot: specRoot
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.toolingConfig.specRoot
+    out:
+      configSpecHas: ok
+  - call: lcod://flow/if@1
+    in:
+      cond: $.configSpecHas
+    out:
+      specRoot: specRoot
+    slots:
+      then:
+        - call: lcod://contract/core/string/trim@1
+          in:
+            text: $.toolingConfig.specRoot
+          out:
+            configSpecRoot: value
+        - call: lcod://impl/set@1
+          in:
+            specRoot: $.configSpecRoot
+          out:
+            specRoot: specRoot
+      else:
+        - call: lcod://contract/core/env/get@1
+          in:
+            name: "SPEC_REPO_PATH"
+          out:
+            envSpec: value
+        - call: lcod://tooling/value/is_string_nonempty@0.1.0
+          in:
+            value: $.envSpec.value
+          out:
+            envSpecHas: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.envSpecHas
+          out:
+            specRoot: specRoot
+          slots:
+            then:
+              - call: lcod://contract/core/string/trim@1
+                in:
+                  text: $.envSpec.value
+                out:
+                  envSpecRoot: value
+              - call: lcod://impl/set@1
+                in:
+                  specRoot: $.envSpecRoot
+                out:
+                  specRoot: specRoot
+  - call: lcod://tooling/value/default_array@0.1.0
+    in:
+      value: $.registryConfig.sources
+    out:
+      registrySourcesRaw: resolved
+
+  - call: lcod://contract/core/array/length@1
+    in:
+      items: $.registrySourcesRaw
+    out:
+      registrySourcesRawCount: length
+  - call: lcod://impl/set@1
+    in:
+      registrySources: []
+    out:
+      registrySources: registrySources
+
+  - call: lcod://tooling/value/is_array@0.1.0
+    in:
+      value: $.registryConfig.sources
+    out:
+      registrySourcesIsArray: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.registrySourcesIsArray
+    slots:
+      then:
+        - call: lcod://contract/tooling/registry/normalize_sources@1
+          in:
+            entries: $.registrySourcesRaw
+          out:
+            normalizedRegistrySources: entries
+            registrySourceWarningsRaw: warnings
+        - call: lcod://tooling/value/default_array@0.1.0
+          in:
+            value: $.registrySourceWarningsRaw
+            fallback: []
+          out:
+            registrySourceWarnings: resolved
+        - call: lcod://tooling/array/append@0.1.0
+          in:
+            items: $.warningsList
+            values: $.registrySourceWarnings
+          out:
+            warningsList: items
+        - call: lcod://impl/set@1
+          in:
+            registrySources: $.normalizedRegistrySources
+          out:
+            registrySources: registrySources
+
+  - call: lcod://impl/set@1
+    in:
+      normalizedConfig:
+        sources: $.sourcesObject
+        replaceAlias: $.replaceAlias
+        replaceSpec: $.replaceSpec
+        allowlist: $.allowlist
+        registrySources: $.registrySources
+        specRoot: $.specRoot
     out:
       normalizedConfig: normalizedConfig
+
+  - call: lcod://contract/core/array/length@1
+    in:
+      items: $.registrySources
+    out:
+      registrySourcesCount: length
+  - call: lcod://impl/set@1
+    in:
+      warnings: $.warningsList
+    out:
       warnings: warnings

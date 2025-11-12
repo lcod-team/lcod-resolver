@@ -1,0 +1,82 @@
+compose:
+  - call: lcod://tooling/value/default_array@0.1.0
+    in:
+      value: $.extraSources
+    out:
+      extraSources: resolved
+
+  - call: lcod://tooling/value/default_array@0.1.0
+    in:
+      value: []
+    out:
+      sourcesList: resolved
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.cataloguePath
+    out:
+      hasCataloguePath: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasCataloguePath
+    out:
+      sourcesList: sourcesList
+    slots:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            localSource:
+              id: "lcod-local"
+              entrypoint:
+                type: "file"
+                path: $.cataloguePath
+          out:
+            localSource: localSource
+        - call: lcod://tooling/array/append@0.1.0
+          in:
+            items: $.sourcesList
+            values:
+              - $.localSource
+          out:
+            sourcesList: items
+
+  - call: lcod://impl/set@1
+    in:
+      officialSource:
+        id: "lcod-official"
+        entrypoint:
+          type: "https"
+          url: "https://raw.githubusercontent.com/lcod-team/lcod-registry/main/catalogues.jsonl"
+    out:
+      officialSource: officialSource
+
+  - call: lcod://tooling/array/append@0.1.0
+    in:
+      items: $.sourcesList
+      values:
+        - $.officialSource
+    out:
+      sourcesList: items
+
+  - call: lcod://flow/foreach@1
+    in:
+      list: $.extraSources
+    slots:
+      body:
+        - call: lcod://tooling/array/append@0.1.0
+          in:
+            items: $.sourcesList
+            values:
+              - $slot.item
+          out:
+            sourcesList: items
+
+  - call: lcod://impl/set@1
+    in:
+      sourcesSpec:
+        schema: "lcod-resolver/sources@1"
+        sources: $.sourcesList
+    out:
+      sources: sourcesList
+      sourcesSpec: sourcesSpec

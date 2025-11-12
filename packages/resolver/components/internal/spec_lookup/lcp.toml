@@ -1,0 +1,49 @@
+schemaVersion = "2.0"
+id = "lcod://resolver/internal/spec_lookup@0.1.0"
+version = "0.1.0"
+kind = "component"
+summary = "Fallback lookup for components hosted within local spec/resolver workspaces." 
+
+[deps]
+requires = [
+  "lcod://impl/set@1",
+  "lcod://flow/if@1",
+  "lcod://tooling/value/default_array@0.1.0",
+  "lcod://tooling/value/is_string_nonempty@0.1.0",
+  "lcod://tooling/value.deep_equal@0.1.0",
+  "lcod://tooling/array/append@0.1.0",
+  "lcod://tooling/array/shift@0.1.0",
+  "lcod://contract/core/array/length@1",
+  "lcod://contract/core/fs/stat@1.0.0",
+  "lcod://axiom/path/join@1"
+]
+
+[inputs.componentId]
+summary = "Identifier being resolved."
+required = true
+schema = "{ \"type\": \"string\" }"
+
+[inputs.pathParts]
+summary = "Parsed path segments (without version)."
+required = true
+schema = "{ \"type\": \"array\", \"items\": { \"type\": \"string\" } }"
+
+[inputs.specRoot]
+summary = "Path to local lcod-spec workspace."
+required = false
+schema = "{ \"type\": [\"string\", \"null\"] }"
+
+[inputs.resolverRoot]
+summary = "Path to local lcod-resolver workspace."
+required = false
+schema = "{ \"type\": [\"string\", \"null\"] }"
+
+[outputs.found]
+summary = "Whether a compose file was located."
+schema = "{ \"type\": \"boolean\" }"
+
+[outputs.result]
+summary = "Resolved compose info when found."
+schema = """
+{ "type": ["object", "null"], "additionalProperties": true }
+"""

@@ -378,6 +378,12 @@ compose:
               };
 
               const readDescriptor = async (descriptorPath) => {
+                if (typeof descriptorPath !== 'string') {
+                  const details = descriptorPath && typeof descriptorPath === 'object'
+                    ? JSON.stringify(descriptorPath)
+                    : String(descriptorPath);
+                  throw new Error(`readDescriptor path must be string; received ${typeof descriptorPath}: ${details}`);
+                }
                 const file = await imports.fsReadFile({ path: descriptorPath, encoding: 'utf-8' });
                 const text = file?.data ?? '';
                 const descriptor = await parseToml(text);

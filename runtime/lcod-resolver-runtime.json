@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2025-11-09T20:24:16.282Z",
-  "commit": "a80382dd45cec293b2f947b6984f56043c7d9d82",
+  "generatedAt": "2025-11-11T20:18:14.748Z",
+  "commit": "cf9f089d356bba4b2741d4d84c0f6d759d195189",
   "ref": "main",
   "package": {
     "id": "lcod://tooling/resolver@0.1.0",
@@ -14,6 +14,36 @@
     "components": []
   },
   "components": [
+    {
+      "id": "lcod://resolver/internal/build_sources_spec@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/build_sources_spec/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/build_sources_spec/lcp.toml"
+    },
+    {
+      "id": "lcod://resolver/internal/find_local_component@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/find_local_component/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/find_local_component/lcp.toml"
+    },
+    {
+      "id": "lcod://resolver/internal/parse_component_id@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/parse_component_id/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/parse_component_id/lcp.toml"
+    },
+    {
+      "id": "lcod://resolver/internal/resolve_paths@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/resolve_paths/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/resolve_paths/lcp.toml"
+    },
+    {
+      "id": "lcod://resolver/internal/spec_lookup@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/spec_lookup/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/spec_lookup/lcp.toml"
+    },
     {
       "id": "lcod://resolver/locate_component@0.1.0",
       "version": "0.1.0",
@@ -49,6 +79,12 @@
       "version": "0.1.0",
       "composePath": "resolver/packages/resolver/components/internal/lock_path/compose.yaml",
       "manifestPath": "resolver/packages/resolver/components/internal/lock_path/lcp.toml"
+    },
+    {
+      "id": "lcod://tooling/resolver/internal/normalize-dependency@0.1.0",
+      "version": "0.1.0",
+      "composePath": "resolver/packages/resolver/components/internal/normalize_dependency/compose.yaml",
+      "manifestPath": "resolver/packages/resolver/components/internal/normalize_dependency/lcp.toml"
     },
     {
       "id": "lcod://tooling/resolver/internal/prepare-cache@0.1.0",

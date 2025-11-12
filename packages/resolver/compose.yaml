@@ -67,6 +67,7 @@ compose:
       dependencyGraph: $.dependencyGraph
       warnings: $.collectedWarnings
       rootIntegrity: $.rootIntegrity
+      resolverRoot: $.resolverResult.root
     out:
       lockDocument: lockDocument
       lockText: lockText
@@ -79,20 +80,43 @@ compose:
     out:
       ok: wrote
 
-  - call: lcod://tooling/script@1
+  - call: lcod://tooling/value/is_array@0.1.0
     in:
-      source: |
-        async ({ state }) => ({
-          lockPath: state.lockPath,
-          components: Array.isArray(state.components) ? state.components : [],
-          warnings: Array.isArray(state.warnings) && state.warnings.length > 0
-            ? state.warnings
-            : undefined
-        })
-      input:
-        lockPath: $.lockPath
-        components: $.lockDocument.components
-        warnings: $.warnings
+      value: $.lockDocument.components
+    out:
+      hasComponentsArray: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasComponentsArray
+    out:
+      normalizedComponents: normalizedComponents
+    slots:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            normalizedComponents: $.lockDocument.components
+          out:
+            normalizedComponents: normalizedComponents
+      else:
+        - call: lcod://impl/set@1
+          in:
+            normalizedComponents: []
+          out:
+            normalizedComponents: normalizedComponents
+
+  - call: lcod://tooling/value/default_array@0.1.0
+    in:
+      value: $.warnings
+      fallback: []
+    out:
+      normalizedWarnings: resolved
+
+  - call: lcod://impl/set@1
+    in:
+      lockPath: $.lockPath
+      components: $.normalizedComponents
+      warnings: $.normalizedWarnings
     out:
       lockPath: lockPath
       components: components

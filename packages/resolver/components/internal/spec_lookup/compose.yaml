@@ -1,0 +1,89 @@
+compose:
+  - call: lcod://tooling/value/default_array@0.1.0
+    in:
+      value: $.pathParts
+    out:
+      pathParts: resolved
+
+  - call: lcod://tooling/value/default_array@0.1.0
+    in:
+      value: $.warnings
+    out:
+      warnings: resolved
+
+  - call: lcod://impl/set@1
+    in:
+      found: false
+      result: null
+    out:
+      found: found
+      result: result
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.specRoot
+    out:
+      hasSpecRoot: ok
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.resolverRoot
+    out:
+      hasResolverRoot: ok
+
+  - call: lcod://contract/core/array/length@1
+    in:
+      items: $.pathParts
+    out:
+      partsLength: length
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasSpecRoot
+    slots:
+      then:
+        - call: lcod://flow/if@1
+          in:
+            cond: $.partsLength
+          slots:
+            then:
+              - call: lcod://tooling/array/append@0.1.0
+                in:
+                  items: $.pathParts
+                  values:
+                    - "compose.yaml"
+                out:
+                  specSegments: items
+              - call: lcod://axiom/path/join@1
+                in:
+                  base: $.specRoot
+                  segment: $.specSegments
+                out:
+                  specComposePath: path
+              - call: lcod://contract/core/fs/stat@1.0.0
+                in:
+                  path: $.specComposePath
+                out:
+                  specStat: $
+              - call: lcod://flow/if@1
+                in:
+                  cond: $.specStat.exists
+                slots:
+                  then:
+                    - call: lcod://impl/set@1
+                      in:
+                        found: true
+                        result:
+                          id: $.componentId
+                          composePath: $.specComposePath
+                          repoRoot: $.specRoot
+                      out:
+                        found: found
+                        result: result
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.found
+    slots:
+      then:
+        - call: lcod://flow/break@1

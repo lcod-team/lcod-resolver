@@ -6,11 +6,17 @@ summary = "Assemble the resolver lock payload and its TOML serialisation."
 
 [deps]
 requires = [
-  "lcod://tooling/script@1",
-  "lcod://axiom/toml/stringify@1",
-  "lcod://tooling/value/is_array@0.1.0",
+  "lcod://tooling/value/default_object@0.1.0",
+  "lcod://tooling/value/default_array@0.1.0",
+  "lcod://tooling/value/is_string_nonempty@0.1.0",
+  "lcod://tooling/value/is_object@0.1.0",
+  "lcod://tooling/array/append@0.1.0",
+  "lcod://flow/if@1",
+  "lcod://flow/foreach@1",
   "lcod://impl/set@1",
-  "lcod://flow/if@1"
+  "lcod://contract/core/array/length@1",
+  "lcod://axiom/toml/stringify@1",
+  "lcod://tooling/resolver/internal/normalize-dependency@0.1.0"
 ]
 
 [inputs.descriptor]
@@ -53,6 +59,17 @@ schema = """
   "type": ["string", "null"],
   "description": "Optional integrity hash for the root descriptor."
 }"""
+
+[inputs.resolverRoot]
+summary = "Resolved root component (fallback for id/source/dependencies)."
+required = false
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "description": "Optional resolved root metadata used as fallback."
+}
+"""
 
 [outputs.lockDocument]
 summary = "Structured lock payload."

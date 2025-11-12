@@ -1,0 +1,71 @@
+schemaVersion = "2.0"
+id = "lcod://resolver/internal/find_local_component@0.1.0"
+version = "0.1.0"
+kind = "component"
+summary = "Load a local registry manifest (JSON/JSONL) and resolve a component id to a compose path."
+
+[deps]
+requires = [
+  "lcod://impl/set@1",
+  "lcod://flow/if@1",
+  "lcod://flow/foreach@1",
+  "lcod://flow/break@1",
+  "lcod://flow/try@1",
+  "lcod://tooling/value/default_array@0.1.0",
+  "lcod://tooling/value/is_string_nonempty@0.1.0",
+  "lcod://tooling/value/is_object@0.1.0",
+  "lcod://tooling/value/is_array@0.1.0",
+  "lcod://tooling/value.deep_equal@0.1.0",
+  "lcod://tooling/array/append@0.1.0",
+  "lcod://core/string/format@0.1.0",
+  "lcod://tooling/json/read_file@0.1.0",
+  "lcod://tooling/jsonl/read@0.1.0",
+  "lcod://axiom/path/join@1"
+]
+
+[inputs.componentId]
+summary = "Component identifier to locate."
+required = true
+schema = """
+{ "type": "string" }
+"""
+
+[inputs.componentsRoot]
+summary = "Absolute path to the components workspace root."
+required = false
+schema = """
+{ "type": ["string", "null"] }
+"""
+
+[inputs.componentsRegistryPath]
+summary = "Path to the registry manifest (JSON/JSONL)."
+required = false
+schema = """
+{ "type": ["string", "null"] }
+"""
+
+[outputs.found]
+summary = "Whether the component was found locally."
+schema = """
+{ "type": "boolean" }
+"""
+
+[outputs.result]
+summary = "Resolved compose info when `found` is true."
+schema = """
+{
+  "type": ["object", "null"],
+  "properties": {
+    "id": { "type": "string" },
+    "composePath": { "type": "string" },
+    "repoRoot": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}
+"""
+
+[outputs.warnings]
+summary = "Warnings emitted during lookup."
+schema = """
+{ "type": "array", "items": { "type": "string" } }
+"""

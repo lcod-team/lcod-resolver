@@ -1,0 +1,120 @@
+compose:
+  - call: lcod://tooling/value/default_object@0.1.0
+    in:
+      value: $.node
+    out:
+      nodeObject: resolved
+
+  - call: lcod://impl/set@1
+    in:
+      entry: null
+      valid: false
+    out:
+      entry: entry
+      valid: valid
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.nodeObject.id
+    out:
+      hasId: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasId
+    out:
+      entry: entry
+      valid: valid
+    slots:
+      then:
+        - call: lcod://impl/set@1
+          in:
+            entry:
+              id: $.nodeObject.id
+            valid: true
+          out:
+            entry: entry
+            valid: valid
+
+        - call: lcod://tooling/value/is_string_nonempty@0.1.0
+          in:
+            value: $.nodeObject.resolved
+          out:
+            hasResolved: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.hasResolved
+          out:
+            entry: entry
+          slots:
+            then:
+              - call: lcod://core/object/merge@0.1.0
+                in:
+                  left: $.entry
+                  right:
+                    resolved: $.nodeObject.resolved
+                out:
+                  entryWithResolved: value
+              - call: lcod://impl/set@1
+                in:
+                  entry: $.entryWithResolved
+                out:
+                  entry: entry
+
+        - call: lcod://tooling/value/is_string_nonempty@0.1.0
+          in:
+            value: $.nodeObject.requested
+          out:
+            hasRequested: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.hasRequested
+          out:
+            entry: entry
+          slots:
+            then:
+              - call: lcod://core/object/merge@0.1.0
+                in:
+                  left: $.entry
+                  right:
+                    requested: $.nodeObject.requested
+                out:
+                  entryWithRequested: value
+              - call: lcod://impl/set@1
+                in:
+                  entry: $.entryWithRequested
+                out:
+                  entry: entry
+
+        - call: lcod://tooling/value/is_object@0.1.0
+          in:
+            value: $.nodeObject.source
+          out:
+            hasSource: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.hasSource
+          out:
+            entry: entry
+          slots:
+            then:
+              - call: lcod://core/object/merge@0.1.0
+                in:
+                  left: $.entry
+                  right:
+                    source: $.nodeObject.source
+                out:
+                  entryWithSource: value
+              - call: lcod://impl/set@1
+                in:
+                  entry: $.entryWithSource
+                out:
+                  entry: entry
+      else:
+        - call: lcod://impl/set@1
+          in:
+            entry: null
+            valid: false
+          out:
+            entry: entry
+            valid: valid

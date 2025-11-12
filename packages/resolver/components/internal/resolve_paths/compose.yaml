@@ -1,0 +1,661 @@
+compose:
+  - call: lcod://tooling/value/default_object@0.1.0
+    in:
+      value: $.pathOptions
+    out:
+      pathOptions: resolved
+
+  - call: lcod://tooling/value/default_object@0.1.0
+    in:
+      value: $.cacheOptions
+    out:
+      cacheOptions: resolved
+
+  - call: lcod://contract/core/runtime/info@1.0.0
+    out:
+      runtimeInfo: $
+
+  - call: lcod://impl/set@1
+    in:
+      cwd: $.runtimeInfo.cwd
+      homeDir: $.runtimeInfo.homeDir
+      projectRoot: $.runtimeInfo.cwd
+      refererAbsolute: null
+      refererDir: null
+      projectCacheDir: null
+      userCacheDir: null
+      cataloguePath: null
+      componentsRoot: null
+      componentsRegistryPath: null
+      specRoot: null
+      resolverRoot: null
+    out:
+      cwd: cwd
+      homeDir: homeDir
+      projectRoot: projectRoot
+      refererAbsolute: refererAbsolute
+      refererDir: refererDir
+      projectCacheDir: projectCacheDir
+      userCacheDir: userCacheDir
+      cataloguePath: cataloguePath
+      componentsRoot: componentsRoot
+      componentsRegistryPath: componentsRegistryPath
+      specRoot: specRoot
+      resolverRoot: resolverRoot
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.refererPath
+    out:
+      refererProvided: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.refererProvided
+    slots:
+      then:
+        - call: lcod://axiom/path/join@1
+          in:
+            base: $.cwd
+            segment: $.refererPath
+          out:
+            refererAbsoluteValue: path
+        - call: lcod://tooling/path/dirname@0.1.0
+          in:
+            path: $.refererAbsoluteValue
+          out:
+            refererDirValue: dirname
+        - call: lcod://impl/set@1
+          in:
+            refererAbsolute: $.refererAbsoluteValue
+            refererDir: $.refererDirValue
+          out:
+            refererAbsolute: refererAbsolute
+            refererDir: refererDir
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.pathOptions.projectPath
+    out:
+      hasProjectInput: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasProjectInput
+    slots:
+      then:
+        - call: lcod://axiom/path/join@1
+          in:
+            base: $.cwd
+            segment: $.pathOptions.projectPath
+          out:
+            projectRootValue: path
+        - call: lcod://impl/set@1
+          in:
+            projectRoot: $.projectRootValue
+          out:
+            projectRoot: projectRoot
+      else:
+        - call: lcod://tooling/value/is_string_nonempty@0.1.0
+          in:
+            value: $.refererDir
+          out:
+            hasRefererDir: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.hasRefererDir
+          slots:
+            then:
+              - call: lcod://impl/set@1
+                in:
+                  projectRoot: $.refererDir
+                out:
+                  projectRoot: projectRoot
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.cacheOptions.projectCacheDir
+    out:
+      hasProjectCache: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasProjectCache
+    slots:
+      then:
+        - call: lcod://axiom/path/join@1
+          in:
+            base: $.projectRoot
+            segment: $.cacheOptions.projectCacheDir
+          out:
+            projectCacheValue: path
+        - call: lcod://impl/set@1
+          in:
+            projectCacheDir: $.projectCacheValue
+          out:
+            projectCacheDir: projectCacheDir
+      else:
+        - call: lcod://axiom/path/join@1
+          in:
+            base: $.projectRoot
+            segment:
+              - ".lcod"
+              - "cache"
+          out:
+            projectCacheDefault: path
+        - call: lcod://impl/set@1
+          in:
+            projectCacheDir: $.projectCacheDefault
+          out:
+            projectCacheDir: projectCacheDir
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.cacheOptions.userCacheDir
+    out:
+      hasUserCache: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasUserCache
+    slots:
+      then:
+        - call: lcod://axiom/path/join@1
+          in:
+            base: $.projectRoot
+            segment: $.cacheOptions.userCacheDir
+          out:
+            userCacheValue: path
+        - call: lcod://impl/set@1
+          in:
+            userCacheDir: $.userCacheValue
+          out:
+            userCacheDir: userCacheDir
+      else:
+        - call: lcod://tooling/value/is_string_nonempty@0.1.0
+          in:
+            value: $.homeDir
+          out:
+            hasHomeDir: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.hasHomeDir
+          slots:
+            then:
+              - call: lcod://axiom/path/join@1
+                in:
+                  base: $.homeDir
+                  segment:
+                    - ".lcod"
+                    - "cache"
+                out:
+                  userCacheDefault: path
+              - call: lcod://impl/set@1
+                in:
+                  userCacheDir: $.userCacheDefault
+                out:
+                  userCacheDir: userCacheDir
+            else:
+              - call: lcod://axiom/path/join@1
+                in:
+                  base: $.projectRoot
+                  segment:
+                    - ".lcod"
+                    - "cache"
+                out:
+                  userCacheFallback: path
+              - call: lcod://impl/set@1
+                in:
+                  userCacheDir: $.userCacheFallback
+                out:
+                  userCacheDir: userCacheDir
+
+  - call: lcod://contract/core/env/get@1.0.0
+    in:
+      name: "LCOD_REGISTRY_CATALOGUE"
+    out:
+      envCataloguePath: value
+
+  - call: lcod://contract/core/env/get@1.0.0
+    in:
+      name: "LCOD_REGISTRY_PATH"
+    out:
+      envRegistryRoot: value
+
+  - call: lcod://contract/core/env/get@1.0.0
+    in:
+      name: "LCOD_COMPONENTS_PATH"
+    out:
+      envComponentsRoot: value
+
+  - call: lcod://contract/core/env/get@1.0.0
+    in:
+      name: "SPEC_REPO_PATH"
+    out:
+      envSpecRoot: value
+
+  - call: lcod://contract/core/env/get@1.0.0
+    in:
+      name: "LCOD_HOME"
+    out:
+      envHomeRoot: value
+
+  - call: lcod://contract/core/env/get@1.0.0
+    in:
+      name: "LCOD_RESOLVER_PATH"
+    out:
+      envResolverRoot: value
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.envRegistryRoot
+    out:
+      hasEnvRegistry: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasEnvRegistry
+    slots:
+      then:
+        - call: lcod://axiom/path/join@1
+          in:
+            base: $.envRegistryRoot
+            segment:
+              - "catalogues.jsonl"
+          out:
+            envRegistryCatalogueJsonl: path
+        - call: lcod://axiom/path/join@1
+          in:
+            base: $.envRegistryRoot
+            segment:
+              - "catalogues.json"
+          out:
+            envRegistryCatalogueJson: path
+        - call: lcod://impl/set@1
+          in:
+            envRegistryCatalogueJsonl: $.envRegistryCatalogueJsonl
+            envRegistryCatalogueJson: $.envRegistryCatalogueJson
+          out:
+            envRegistryCatalogueJsonl: envRegistryCatalogueJsonl
+            envRegistryCatalogueJson: envRegistryCatalogueJson
+
+  - call: lcod://axiom/path/join@1
+    in:
+      base: $.projectRoot
+      segment:
+        - "catalogues.jsonl"
+    out:
+      projectCatalogueJsonl: path
+
+  - call: lcod://axiom/path/join@1
+    in:
+      base: $.projectRoot
+      segment:
+        - "catalogues.json"
+    out:
+      projectCatalogueJson: path
+
+  - call: lcod://axiom/path/join@1
+    in:
+      base: $.projectRoot
+      segment:
+        - ".."
+        - "lcod-registry"
+        - "catalogues.jsonl"
+    out:
+      projectParentCatalogueJsonl: path
+
+  - call: lcod://axiom/path/join@1
+    in:
+      base: $.projectRoot
+      segment:
+        - ".."
+        - "lcod-registry"
+        - "catalogues.json"
+    out:
+      projectParentCatalogueJson: path
+
+  - call: lcod://axiom/path/join@1
+    in:
+      base: $.projectRoot
+      segment:
+        - ".."
+        - ".."
+        - "lcod-registry"
+        - "catalogues.jsonl"
+    out:
+      projectGrandCatalogueJsonl: path
+
+  - call: lcod://axiom/path/join@1
+    in:
+      base: $.projectRoot
+      segment:
+        - ".."
+        - ".."
+        - "lcod-registry"
+        - "catalogues.json"
+    out:
+      projectGrandCatalogueJson: path
+
+  - call: lcod://impl/set@1
+    in:
+      catalogueCandidates:
+        - $.pathOptions.cataloguePath
+        - $.envCataloguePath
+        - $.envRegistryCatalogueJsonl
+        - $.projectCatalogueJsonl
+        - $.projectParentCatalogueJsonl
+        - $.projectGrandCatalogueJsonl
+        - $.envRegistryCatalogueJson
+        - $.projectCatalogueJson
+        - $.projectParentCatalogueJson
+        - $.projectGrandCatalogueJson
+    out:
+      catalogueCandidates: catalogueCandidates
+
+  - call: lcod://flow/foreach@1
+    in:
+      list: $.catalogueCandidates
+    slots:
+      body:
+        - call: lcod://tooling/value/is_string_nonempty@0.1.0
+          in:
+            value: $slot.item
+          out:
+            candidateHasValue: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.candidateHasValue
+          slots:
+            then:
+              - call: lcod://contract/core/fs/stat@1.0.0
+                in:
+                  path: $slot.item
+                out:
+                  candidateStat: $
+              - call: lcod://flow/if@1
+                in:
+                  cond: $.candidateStat.exists
+                slots:
+                  then:
+                    - call: lcod://impl/set@1
+                      in:
+                        cataloguePath: $slot.item
+                      out:
+                        cataloguePath: cataloguePath
+                    - call: lcod://flow/break@1
+
+  - call: lcod://impl/set@1
+    in:
+      componentsRootCandidates:
+        - $.pathOptions.componentsRoot
+        - $.envComponentsRoot
+      specRootCandidates:
+        - $.envSpecRoot
+        - $.envHomeRoot
+      resolverRootCandidates:
+        - $.envResolverRoot
+    out:
+      componentsRootCandidates: componentsRootCandidates
+      specRootCandidates: specRootCandidates
+      resolverRootCandidates: resolverRootCandidates
+
+  - call: lcod://axiom/path/join@1
+    in:
+      base: $.projectRoot
+      segment:
+        - ".."
+        - "lcod-components"
+    out:
+      projectComponentsParent: path
+
+  - call: lcod://axiom/path/join@1
+    in:
+      base: $.projectRoot
+      segment:
+        - ".."
+        - ".."
+        - "lcod-components"
+    out:
+      projectComponentsGrand: path
+
+  - call: lcod://tooling/array/append@0.1.0
+    in:
+      items: $.componentsRootCandidates
+      values:
+        - $.projectComponentsParent
+        - $.projectComponentsGrand
+    out:
+      componentsRootCandidates: items
+
+  - call: lcod://flow/foreach@1
+    in:
+      list: $.componentsRootCandidates
+    slots:
+      body:
+        - call: lcod://tooling/value/is_string_nonempty@0.1.0
+          in:
+            value: $slot.item
+          out:
+            hasCandidateRoot: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.hasCandidateRoot
+          slots:
+            then:
+              - call: lcod://axiom/path/join@1
+                in:
+                  base: $slot.item
+                  segment:
+                    - "registry"
+                    - "components.std.jsonl"
+                out:
+                  registryJsonlCandidate: path
+              - call: lcod://contract/core/fs/stat@1.0.0
+                in:
+                  path: $.registryJsonlCandidate
+                out:
+                  registryJsonlStat: $
+              - call: lcod://flow/if@1
+                in:
+                  cond: $.registryJsonlStat.exists
+                slots:
+                  then:
+                    - call: lcod://impl/set@1
+                      in:
+                        componentsRoot: $slot.item
+                        componentsRegistryPath: $.registryJsonlCandidate
+                      out:
+                        componentsRoot: componentsRoot
+                        componentsRegistryPath: componentsRegistryPath
+                    - call: lcod://flow/break@1
+                  else:
+                    - call: lcod://axiom/path/join@1
+                      in:
+                        base: $slot.item
+                        segment:
+                          - "registry"
+                          - "components.std.json"
+                      out:
+                        registryJsonCandidate: path
+                    - call: lcod://contract/core/fs/stat@1.0.0
+                      in:
+                        path: $.registryJsonCandidate
+                      out:
+                        registryJsonStat: $
+                    - call: lcod://flow/if@1
+                      in:
+                        cond: $.registryJsonStat.exists
+                      slots:
+                        then:
+                          - call: lcod://impl/set@1
+                            in:
+                              componentsRoot: $slot.item
+                              componentsRegistryPath: $.registryJsonCandidate
+                            out:
+                              componentsRoot: componentsRoot
+                              componentsRegistryPath: componentsRegistryPath
+                          - call: lcod://flow/break@1
+
+  - call: lcod://tooling/array/append@0.1.0
+    in:
+      items: $.specRootCandidates
+      values:
+        - $.projectRoot
+        - $.projectComponentsParent
+        - $.projectComponentsGrand
+    out:
+      specRootCandidates: items
+
+  - call: lcod://flow/foreach@1
+    in:
+      list: $.specRootCandidates
+    slots:
+      body:
+        - call: lcod://tooling/value/is_string_nonempty@0.1.0
+          in:
+            value: $slot.item
+          out:
+            hasSpecCandidate: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.hasSpecCandidate
+          slots:
+            then:
+              - call: lcod://contract/core/fs/stat@1.0.0
+                in:
+                  path: $slot.item
+                out:
+                  specStat: $
+              - call: lcod://flow/if@1
+                in:
+                  cond: $.specStat.exists
+                slots:
+                  then:
+                    - call: lcod://impl/set@1
+                      in:
+                        specRoot: $slot.item
+                      out:
+                        specRoot: specRoot
+                    - call: lcod://flow/break@1
+
+  - call: lcod://tooling/value/is_string_nonempty@0.1.0
+    in:
+      value: $.specRoot
+    out:
+      hasSpecRoot: ok
+
+  - call: lcod://flow/if@1
+    in:
+      cond: $.hasSpecRoot
+    slots:
+      then:
+        - call: lcod://axiom/path/join@1
+          in:
+            base: $.specRoot
+            segment:
+              - "resolver"
+          out:
+            specResolverDir: path
+        - call: lcod://tooling/array/append@0.1.0
+          in:
+            items: $.resolverRootCandidates
+            values:
+              - $.specResolverDir
+          out:
+            resolverRootCandidates: items
+
+  - call: lcod://axiom/path/join@1
+    in:
+      base: $.projectRoot
+      segment:
+        - ".."
+        - "lcod-resolver"
+    out:
+      projectResolverParent: path
+
+  - call: lcod://axiom/path/join@1
+    in:
+      base: $.projectRoot
+      segment:
+        - ".."
+        - ".."
+        - "lcod-resolver"
+    out:
+      projectResolverGrand: path
+
+  - call: lcod://tooling/array/append@0.1.0
+    in:
+      items: $.resolverRootCandidates
+      values:
+        - $.projectResolverParent
+        - $.projectResolverGrand
+    out:
+      resolverRootCandidates: items
+
+  - call: lcod://flow/foreach@1
+    in:
+      list: $.resolverRootCandidates
+    slots:
+      body:
+        - call: lcod://tooling/value/is_string_nonempty@0.1.0
+          in:
+            value: $slot.item
+          out:
+            hasResolverCandidate: ok
+        - call: lcod://flow/if@1
+          in:
+            cond: $.hasResolverCandidate
+          slots:
+            then:
+              - call: lcod://contract/core/fs/stat@1.0.0
+                in:
+                  path: $slot.item
+                out:
+                  resolverStat: $
+              - call: lcod://flow/if@1
+                in:
+                  cond: $.resolverStat.exists
+                slots:
+                  then:
+                    - call: lcod://axiom/path/join@1
+                      in:
+                        base: $slot.item
+                        segment:
+                          - "packages"
+                          - "resolver"
+                          - "components"
+                      out:
+                        resolverComponentsDir: path
+                    - call: lcod://contract/core/fs/stat@1.0.0
+                      in:
+                        path: $.resolverComponentsDir
+                      out:
+                        resolverComponentsStat: $
+                    - call: lcod://flow/if@1
+                      in:
+                        cond: $.resolverComponentsStat.exists
+                      slots:
+                        then:
+                          - call: lcod://impl/set@1
+                            in:
+                              resolverRoot: $slot.item
+                            out:
+                              resolverRoot: resolverRoot
+                          - call: lcod://flow/break@1
+
+  - call: lcod://impl/set@1
+    in:
+      resolved:
+        cwd: $.cwd
+        refererPath: $.refererAbsolute
+        projectRoot: $.projectRoot
+        projectCacheDir: $.projectCacheDir
+        userCacheDir: $.userCacheDir
+        cataloguePath: $.cataloguePath
+        componentsRoot: $.componentsRoot
+        componentsRegistryPath: $.componentsRegistryPath
+        specRoot: $.specRoot
+        resolverRoot: $.resolverRoot
+    out:
+      resolvedPaths: resolved
