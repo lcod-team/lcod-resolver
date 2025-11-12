@@ -313,7 +313,7 @@ compose:
             right:
               sourcesPath: $.sourcesPath
           out:
-            contractOverrides: contractOverrides
+            contractOverrides: value
       else:
         - call: lcod://impl/set@1
           in:
@@ -321,10 +321,17 @@ compose:
           out:
             contractOverrides: contractOverrides
 
+  - call: lcod://tooling/value/default_object@0.1.0
+    in:
+      value: $.contractOverrides
+      fallback: {}
+    out:
+      contractOverridesNormalized: resolved
+
   - call: lcod://core/object/merge@0.1.0
     in:
       left: $.normalizedConfigResolved
-      right: $.contractOverrides
+      right: $.contractOverridesNormalized
     out:
       normalizedConfig: value
 
@@ -334,44 +341,26 @@ compose:
     out:
       contractSourcesSnapshot: contractSourcesSnapshot
 
-  - call: lcod://flow/try@1
+  - call: lcod://contract/tooling/resolver/resolve_dependencies@1
+    in:
+      projectPath: $.projectPath
+      cacheRoot: $.cacheRoot
+      normalizedConfig: $.normalizedConfig
+      config: $.config
+      rootId: $.rootId
+      rootDescriptor: $.rootDescriptor
+      rootDescriptorText: $.rootDescriptorText
+      warnings: $.normalizedWarnings
+      loadWarnings: $.loadWarnings
+      indexWarnings: $.indexWarnings
+      registrationWarnings: $.registrationWarnings
+      registrySources: $.registrySources
+      registryPackages: $.registryPackages
+      registryEntries: $.registryEntries
+      registryRegistries: $.registryRegistries
+      pointerWarnings: $.pointerWarnings
+      pointerRegistrySources: $.pointerRegistrySources
+      sourcesPath: $.sourcesPath
     out:
       resolverResult: resolverResult
       warnings: resolveWarnings
-      contractSourcesSnapshot: contractSourcesSnapshot
-    slots:
-      body:
-        - &resolve_contract_call
-          call: lcod://contract/tooling/resolver/resolve_dependencies@1
-          in:
-            projectPath: $.projectPath
-            cacheRoot: $.cacheRoot
-            normalizedConfig: $.normalizedConfig
-            config: $.config
-            rootId: $.rootId
-            rootDescriptor: $.rootDescriptor
-            rootDescriptorText: $.rootDescriptorText
-            warnings: $.normalizedWarnings
-            loadWarnings: $.loadWarnings
-            indexWarnings: $.indexWarnings
-            registrationWarnings: $.registrationWarnings
-            registrySources: $.registrySources
-            registryPackages: $.registryPackages
-            registryEntries: $.registryEntries
-            registryRegistries: $.registryRegistries
-            pointerWarnings: $.pointerWarnings
-            pointerRegistrySources: $.pointerRegistrySources
-            sourcesPath: $.sourcesPath
-          out:
-            resolverResult: resolverResult
-            warnings: resolveWarnings
-      catch:
-        - call: lcod://contract/tooling/log@1
-          in:
-            level: "error"
-            message: "resolve_dependencies contract error"
-            data:
-              error: $slot.error
-        - call: lcod://flow/throw@1
-          in:
-            error: $slot.error
