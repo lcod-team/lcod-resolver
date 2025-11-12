@@ -134,6 +134,7 @@ compose:
                   items: $.normalizedDependencies
                   values:
                     - $.dependencyEntry
+                  clone: false
                 out:
                   normalizedDependencies: items
 
@@ -158,6 +159,7 @@ compose:
                   items: $.fallbackDependencies
                   values:
                     - $.fallbackEntry
+                  clone: false
                 out:
                   fallbackDependencies: items
 

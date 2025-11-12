@@ -82,6 +82,12 @@ compose:
             resolverResult: resolverResult
             warnings: resolveWarnings
       catch:
+        - call: lcod://contract/tooling/log@1
+          in:
+            level: "debug"
+            message: "resolve_dependencies contract fallback"
+            data:
+              error: $slot.error
         - call: lcod://tooling/script@1
           in:
             source: |
