@@ -46,3 +46,9 @@ Goal: consume the Git-first registry defined in `docs/registry.md` and expose us
 - [ ] M6-01 Expose resolver operations (search, reserve IDs, lock preview) through the MCP backend.
 - [ ] M6-02 Provide compose helpers so MCP sessions can materialise components and run validation before serialization.
 - [ ] M6-03 Record provenance metadata (author, intent, review status) suitable for MCP-driven publishing workflows.
+
+## M7 — Scriptless helpers
+
+- [ ] M7-01 Replace the remaining `tooling/script@1` usage in `resources/compose/resolver` (prepare config, cache setup, dependency summariser) with compose primitives so kernels no longer require QuickJS fallbacks.
+- [ ] M7-02 Rewrite `packages/resolver/components/internal/{load_config, load_sources, build_sources_spec, resolve_paths, summarize_result}` using the shared axioms (`core/string`, `core/path`, `tooling/object/entries`, `tooling/value/kind`, etc.) and add conformance tests to guard the new flows.
+- [ ] M7-03 Introduce any missing primitives (e.g. ordered JSON emit, filesystem globbing) in `lcod-spec` before consuming them here, and document the migration status per component in this file.
