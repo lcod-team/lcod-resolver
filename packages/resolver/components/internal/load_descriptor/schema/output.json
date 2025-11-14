@@ -14,6 +14,18 @@
     "descriptor": {
       "type": "object",
       "description": "Parsed descriptor content."
+    },
+    "projectPath": {
+      "type": ["string", "null"],
+      "description": "Passthrough of the project path input."
+    },
+    "configPath": {
+      "type": ["string", "null"],
+      "description": "Passthrough of the resolve.config.json path."
+    },
+    "outputPath": {
+      "type": ["string", "null"],
+      "description": "Passthrough of the explicit output path."
     }
   },
   "additionalProperties": true

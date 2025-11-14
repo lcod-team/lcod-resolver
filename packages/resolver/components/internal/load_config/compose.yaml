@@ -51,6 +51,7 @@ compose:
     out:
       normalizedConfig: resolved
 
+
   - call: lcod://tooling/value/default_object@0.1.0
     in:
       value: $.normalizedConfig.sources
@@ -122,7 +123,11 @@ compose:
       configPath: $.effectiveConfigPath
       config: $.resolverConfig.value
       warnings: $.warnings
+      projectPath: $.projectPath
+      outputPath: $.outputPath
     out:
       configPath: configPath
       config: config
       warnings: warnings
+      projectPath: projectPath
+      outputPath: outputPath

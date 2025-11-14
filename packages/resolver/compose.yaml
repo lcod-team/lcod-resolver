@@ -1,30 +1,38 @@
 compose:
-  - call: internal/load-descriptor
+  - call: lcod://tooling/resolver/internal/load-descriptor@0.1.0
     in:
       projectPath: $.projectPath
+      configPath: $.configPath
+      outputPath: $.outputPath
     out:
       descriptor: descriptor
       descriptorText: descriptorText
       descriptorPath: descriptorPath
+      projectPath: projectPath
+      configPath: configPath
+      outputPath: outputPath
 
-  - call: internal/load-config
+  - call: lcod://tooling/resolver/internal/load-config@0.1.0
     in:
       projectPath: $.projectPath
       configPath: $.configPath
+      outputPath: $.outputPath
     out:
       resolverConfig: config
       config: config
       configPath: resolvedConfigPath
       warnings: configWarnings
+      projectPath: projectPath
+      outputPath: outputPath
 
-  - call: internal/lock-path
+  - call: lcod://tooling/resolver/internal/lock-path@0.1.0
     in:
       projectPath: $.projectPath
       outputPath: $.outputPath
     out:
       lockPath: lockPath
 
-  - call: internal/prepare-config
+  - call: lcod://tooling/resolver/internal/prepare-config@0.1.0
     in:
       resolverConfig: $.resolverConfig
       config: $.config
@@ -32,14 +40,15 @@ compose:
     out:
       normalizedConfig: normalizedConfig
       warnings: normalizedWarnings
+      config: config
 
-  - call: internal/prepare-cache
+  - call: lcod://tooling/resolver/internal/prepare-cache@0.1.0
     in:
       projectPath: $.projectPath
     out:
       cacheRoot: cacheRoot
 
-  - call: internal/resolve-dependencies
+  - call: lcod://tooling/resolver/internal/resolve-dependencies@0.1.0
     in:
       projectPath: $.projectPath
       cacheRoot: $.cacheRoot
@@ -54,7 +63,7 @@ compose:
       warnings: resolveWarnings
       contractSourcesSnapshot: contractSourcesSnapshot
 
-  - call: internal/summarize-result
+  - call: lcod://tooling/resolver/internal/summarize-result@0.1.0
     in:
       resolverResult: $.resolverResult
       warnings: $.resolveWarnings
@@ -63,7 +72,7 @@ compose:
       rootIntegrity: rootIntegrity
       warnings: collectedWarnings
 
-  - call: internal/build-lock
+  - call: lcod://tooling/resolver/internal/build-lock@0.1.0
     in:
       descriptor: $.descriptor
       dependencyGraph: $.dependencyGraph

@@ -23,6 +23,26 @@ schema = """
   "description": "Absolute or relative path to the project root containing lcp.toml."
 }"""
 
+[inputs.configPath]
+summary = "Optional resolve.config.json path (propagated downstream)."
+required = false
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": ["string", "null"],
+  "description": "Optional explicit resolve.config.json path."
+}"""
+
+[inputs.outputPath]
+summary = "Optional explicit lockfile output path (propagated downstream)."
+required = false
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": ["string", "null"],
+  "description": "Optional explicit lockfile output path."
+}"""
+
 [outputs.descriptorPath]
 summary = "Absolute path to the descriptor that was loaded."
 schema = """
@@ -48,6 +68,30 @@ schema = """
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "description": "Parsed descriptor content."
+}"""
+
+[outputs.projectPath]
+summary = "Passthrough of the project root path."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": ["string", "null"]
+}"""
+
+[outputs.configPath]
+summary = "Passthrough of the resolve.config.json path."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": ["string", "null"]
+}"""
+
+[outputs.outputPath]
+summary = "Passthrough of the explicit output path."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": ["string", "null"]
 }"""
 
 [tool]

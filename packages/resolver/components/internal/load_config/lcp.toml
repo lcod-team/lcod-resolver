@@ -39,6 +39,16 @@ schema = """
   "description": "Optional explicit path to the resolver configuration."
 }"""
 
+[inputs.outputPath]
+summary = "Optional explicit destination for `lcp.lock` (propagated downstream)."
+required = false
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "description": "Absolute or relative path passed through to downstream steps."
+}"""
+
 [outputs.configPath]
 summary = "Resolved path of the configuration that was loaded."
 schema = """
@@ -65,6 +75,22 @@ schema = """
   "type": "array",
   "items": { "type": "string" },
   "description": "Warnings produced while loading the configuration."
+}"""
+
+[outputs.projectPath]
+summary = "Passthrough of the project root path."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": ["string", "null"]
+}"""
+
+[outputs.outputPath]
+summary = "Passthrough of the optional output path."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": ["string", "null"]
 }"""
 
 [tool]

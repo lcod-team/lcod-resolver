@@ -167,6 +167,23 @@ schema = """
   "description": "Warnings emitted during resolution."
 }"""
 
+[outputs.contractSourcesSnapshot]
+summary = "Snapshot of the sources map passed to the resolver contract."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": {
+    "type": "object",
+    "properties": {
+      "type": { "type": "string" },
+      "path": { "type": "string" },
+      "url": { "type": "string" },
+      "reference": { "type": "string" }
+    }
+  }
+}"""
+
 [tool]
 name = "resolve_dependencies"
 description = "Traverse the dependency tree, applying replacements, allowlists, cache lookups and resolver contracts."

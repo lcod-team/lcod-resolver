@@ -17,6 +17,14 @@
         "type": "string"
       },
       "description": "Warnings produced while loading the configuration."
+    },
+    "projectPath": {
+      "type": ["string", "null"],
+      "description": "Passthrough of the project root path."
+    },
+    "outputPath": {
+      "type": ["string", "null"],
+      "description": "Passthrough of the optional output path."
     }
   },
   "additionalProperties": true

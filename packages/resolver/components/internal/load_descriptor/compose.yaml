@@ -24,7 +24,13 @@ compose:
       descriptorPath: $.descriptorPath
       descriptorText: $.descriptorText
       descriptor: $.descriptor
+      projectPath: $.projectPath
+      configPath: $.configPath
+      outputPath: $.outputPath
     out:
       descriptorPath: descriptorPath
       descriptorText: descriptorText
       descriptor: descriptor
+      projectPath: projectPath
+      configPath: configPath
+      outputPath: outputPath

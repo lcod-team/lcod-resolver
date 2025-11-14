@@ -75,6 +75,15 @@ schema = """
   "description": "Warnings propagated to subsequent steps."
 }"""
 
+[outputs.config]
+summary = "Resolved configuration object (used for backward compatibility)."
+schema = """
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "description": "Configuration object propagated to downstream steps."
+}"""
+
 [tool]
 name = "prepare_config"
 description = "Prepare normalized configuration state for dependency resolution."

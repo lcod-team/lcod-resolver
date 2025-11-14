@@ -3,7 +3,15 @@ compose:
     in:
       specRoot: $.normalizedConfig.specRoot
     out:
-      registrationWarnings: registrationWarnings
+      registrationWarnings: warnings
+      specSources: sources
+
+  - call: lcod://tooling/value/default_object@0.1.0
+    in:
+      value: $.specSources
+      fallback: {}
+    out:
+      specSourcesNormalized: resolved
 
   - call: lcod://tooling/resolver/internal/load-sources@0.1.0
     in:
@@ -272,6 +280,14 @@ compose:
                             out:
                               contractSources: contractSources
 
+
+  - call: lcod://core/object/merge@0.1.0
+    in:
+      left: $.specSourcesNormalized
+      right: $.contractSources
+    out:
+      contractSources: value
+
   - call: lcod://tooling/value/default_array@0.1.0
     in:
       value: $.normalizedConfigResolved.registrySources
@@ -337,7 +353,7 @@ compose:
 
   - call: lcod://impl/set@1
     in:
-      contractSourcesSnapshot: $.normalizedConfig.sources
+      contractSourcesSnapshot: $.contractSources
     out:
       contractSourcesSnapshot: contractSourcesSnapshot
 
@@ -361,6 +377,7 @@ compose:
       pointerWarnings: $.pointerWarnings
       pointerRegistrySources: $.pointerRegistrySources
       sourcesPath: $.sourcesPath
+      specSources: $.contractSources
     out:
       resolverResult: resolverResult
       warnings: resolveWarnings
