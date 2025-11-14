@@ -24,6 +24,9 @@ child.stdout.on('data', (chunk) => { output += chunk; });
 
 child.on('close', (code) => {
   if (code !== 0) {
+    if (output.trim().length > 0) {
+      console.error('[test-resolver-sources] raw runner output:\n', output);
+    }
     console.error(`Spec runner failed (exit code ${code})`);
     process.exit(code);
     return;
